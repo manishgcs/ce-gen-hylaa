@@ -20,7 +20,7 @@ reachSet = [
 ''')
 
         # data
-        for name, data in poly_data_dict.iteritems():
+        for name, data in poly_data_dict.items():
             fcol, ecol, polys = data
             f.write("    {{'{}', [{} {} {}], [{} {} {}], 0, {{\n".format(name, fcol[0], fcol[1], fcol[2], ecol[0], ecol[1], ecol[2]))
 

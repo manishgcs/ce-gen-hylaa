@@ -9,6 +9,7 @@ import os.path
 
 from hylaa.util import Freezable
 
+
 class HylaaSettings(Freezable):
     'Settings for the computation'
 
@@ -28,7 +29,7 @@ class HylaaSettings(Freezable):
 
         self.add_guard_during_aggregation = True # add guard constraints during aggregation
         self.add_box_during_aggregation = True # add box constraints during aggregation
-        #self.trim_redundant_inv_constraints = True # perform redundant invariant trimming
+        # self.trim_redundant_inv_constraints = True # perform redundant invariant trimming
         self.process_urgent_guards = False # should urgent transition (where 0 time elapses in a mode) be allowed?
         self.stop_when_error_reachable = True # should we stop computing immediately when an error mode is reached?
 
@@ -38,13 +39,15 @@ class HylaaSettings(Freezable):
         self.opt_decompose_lp = True # use the Minkowski sum decomposition optimization (for systems with inputs)
         self.opt_warm_start_lp = True # reuse the LP instances between guard checks (warm-start LP)
 
-        self.counter_example_filename = "counterexample.py" # the counter-example filename to create on errors: "counterexample.py" #goyalm
+        self.counter_example_filename = "counterexample.py" # the counter-example filename to create on errors:
+        # "counterexample.py" #goyalm
         self.usafe_stars_filename = "usafe_stars.csv"
         if os.path.exists(self.usafe_stars_filename):
             os.remove(self.usafe_stars_filename)
         self.simulation = SimulationSettings(step)
 
         self.freeze_attrs()
+
 
 class SimulationSettings(Freezable):
     'simulation settings container'
@@ -66,6 +69,7 @@ class SimulationSettings(Freezable):
         self.print_interval_secs = 2  # how often to print to stdout during parallel simulations
 
         self.freeze_attrs()
+
 
 class PlotSettings(Freezable):
     'plot settings container'
@@ -133,6 +137,7 @@ class PlotSettings(Freezable):
 
         self.video = video
 
+
 class VideoSettings(Freezable):
     'settings for video'
 
@@ -142,6 +147,7 @@ class VideoSettings(Freezable):
         self.fps = 20 # number of frames per second
 
         self.freeze_attrs()
+
 
 class LabelSettings(Freezable):
     'settings for labels such as plot title, plot font size, ect.'
@@ -171,6 +177,7 @@ class LabelSettings(Freezable):
         self.x_label = ''
         self.y_label = ''
         self.title = ''
+
 
 class HylaaResult(object):
     'Result, assigned to engine.result after computation'

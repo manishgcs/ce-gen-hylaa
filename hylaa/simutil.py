@@ -145,8 +145,8 @@ class DyData(Freezable):
         mu = 0
         ml = 0
 
-        for row in xrange(dims):
-            for col in xrange(dims):
+        for row in range(dims):
+            for col in range(dims):
                 if matrix[row][col] != 0:
                     if col > row:
                         dif = col - row
@@ -157,10 +157,10 @@ class DyData(Freezable):
 
         banded = []
 
-        for yoffset in xrange(-mu, ml+1):
+        for yoffset in range(-mu, ml+1):
             row = []
 
-            for diag in xrange(dims):
+            for diag in range(dims):
                 x_index = diag
                 y_index = diag + yoffset
 
@@ -172,6 +172,7 @@ class DyData(Freezable):
             banded.append(row)
 
         return (banded, mu, ml)
+
 
 class SimulationBundle(Freezable):
     'a simulation bundle of basis vectors in a fixed set of dynamics (single mode)'
@@ -241,7 +242,7 @@ class SimulationBundle(Freezable):
         sim_start_time = time.time()
         args = []
 
-        for dim in xrange(self.num_dims):
+        for dim in range(self.num_dims):
             args.append([sim_start_time, start_list[dim], steps, include_step_zero, linear_dy, self.settings])
 
         if self.settings.stdout:
@@ -263,10 +264,10 @@ class SimulationBundle(Freezable):
 
         rv = []
 
-        for step in xrange(result[0].shape[0]):
+        for step in range(result[0].shape[0]):
             single_step_result = np.empty((self.num_dims, self.num_dims))
 
-            for dim in xrange(self.num_dims):
+            for dim in range(self.num_dims):
                 single_step_result[dim] = result[dim][step]
 
             rv.append(single_step_result)
@@ -427,7 +428,7 @@ class SimulationBundle(Freezable):
         args = []
         origin = np.zeros((self.num_dims), dtype=float)
 
-        for dim in xrange(num_inputs):
+        for dim in range(num_inputs):
             b_col = csr_matrix(b_matrix[:, dim])
             input_dy_data = DyData(self.dy_data.sparse_a_matrix, b_col, self.settings.sparse)
 
@@ -444,7 +445,7 @@ class SimulationBundle(Freezable):
 
         rv = np.zeros((num_inputs, self.num_dims), dtype=float)
 
-        for dim in xrange(num_inputs):
+        for dim in range(num_inputs):
             rv[dim, :] = result[dim][0]
 
         Timers.toc("input-effect simulation")
@@ -495,6 +496,7 @@ class SimulationBundle(Freezable):
 SHARED_NEXT_PRINT = multiprocessing.Value('d')
 SHARED_COMPLETED_SIMS = multiprocessing.Value('i')
 
+
 def pool_sim_func(args):
     'perform a single simulation possibly as part of parallel solving with multiprocessing.Pool'
 
@@ -523,6 +525,7 @@ def pool_sim_func(args):
 
     return rv
 
+
 def raw_sim_one(start, steps, dy_data, settings, include_step_zero=False):
     '''
     simulate from a single point at the given times
@@ -530,6 +533,7 @@ def raw_sim_one(start, steps, dy_data, settings, include_step_zero=False):
     return an nparray of states at those times, possibly excluding time zero
     '''
 
+    # print(start)
     start.shape = (dy_data.num_dims,)
 
     times = np.linspace(0, settings.step * steps, num=steps+1)
@@ -546,6 +550,7 @@ def raw_sim_one(start, steps, dy_data, settings, include_step_zero=False):
         result = result[1:]
 
     return result
+
 
 def compute_simulation(start, a_matrix, b_vector, step_time, max_steps):
         '''test simutil result'''

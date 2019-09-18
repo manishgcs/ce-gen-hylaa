@@ -109,6 +109,7 @@ class ModeColors(Freezable):
 
         return (face_col, edge_col)
 
+
 class DrawnShapes(Freezable):
     'maintains shapes to be drawn'
 
@@ -178,8 +179,8 @@ class DrawnShapes(Freezable):
     def set_waiting_list_polys(self, waiting_list):
         'set the polys from the waiting list'
 
-        #print ".plotutil set_waiting_list_polys called... waitinglist ="
-        #waiting_list.print_stats()
+        # print ".plotutil set_waiting_list_polys called... waitinglist ="
+        # waiting_list.print_stats()
 
         self.clear_waiting_list_polys()
 
@@ -348,7 +349,7 @@ class DrawnShapes(Freezable):
 
             keep = True
 
-            for i in xrange(len(xdata)):
+            for i in range(len(xdata)):
                 if keep:
                     new_xdata.append(xdata[i])
                     new_ydata.append(ydata[i])
@@ -395,12 +396,14 @@ class DrawnShapes(Freezable):
             codes = [Path.MOVETO] + [Path.LINETO] * (len(poly_verts) - 2) + [Path.CLOSEPOLY]
             paths.append(Path(poly_verts, codes))
 
+
 class InteractiveState(object):
     'container object for interactive plot state'
 
     def __init__(self):
         self.paused = False
         self.step = False
+
 
 class PlotManager(Freezable):
     'manager object for plotting during or after computation'
@@ -445,7 +448,7 @@ class PlotManager(Freezable):
         if self.shapes is not None and self.settings.plot_traces:
             pts = []
 
-            for step in xrange(num_steps+1):
+            for step in range(num_steps+1):
                 basis_vec_list, sim_center = sim_bundle.get_vecs_origin_at_step(step, num_steps)
 
                 if start_basis_matrix is None:
@@ -693,7 +696,7 @@ class PlotManager(Freezable):
             rv = self.shapes.get_artists(self.engine.waiting_list)
 
             # it seems we only need to do this once...
-            #if not self.drew_first_frame:
+            # if not self.drew_first_frame:
             #    self.drew_first_frame = True
 
             #    print "drew first frame"
@@ -710,7 +713,7 @@ class PlotManager(Freezable):
                 yield False
 
             # redraw one more (will clear cur_state)
-            #yield False
+            # yield False
 
             Timers.toc("total")
 
@@ -820,6 +823,7 @@ class PlotManager(Freezable):
 
             print ("\nSaving video file failed! Is ffmpeg installed? Can you run 'ffmpeg' in the terminal?")
 
+
 def debug_plot_star(star, col='k-', lw=1):
     '''
     debug function for plotting a star. This calls plt.plot(), so it's up to you
@@ -835,6 +839,7 @@ def debug_plot_star(star, col='k-', lw=1):
     ys = [ele[1] for ele in verts]
 
     plt.plot(xs, ys, col, lw=lw)
+
 
 # monkey patch function for blitting tick-labels
 # see http://stackoverflow.com/questions/17558096/animated-title-in-matplotlib
@@ -859,6 +864,7 @@ def _blit_draw(_self, artists, bg_cache):
         # and here
         # ax.figure.canvas.blit(ax.bbox)
         ax.figure.canvas.blit(ax.figure.bbox)
+
 
 animation.Animation._blit_draw = _blit_draw
 

@@ -108,7 +108,7 @@ class PostVerificationObject(object):
         ## Iterate over the stars which intersect with the unsafe set
         ## Eventually there is going to be just one star at a particular
         ## time step that user is interested in.
-        for index in xrange(len(self.error_stars)):
+        for index in range(len(self.error_stars)):
 
             #basis_matrix = error_star_basis_matrices[index]
             #basis_center = error_star_centers[index]
@@ -176,7 +176,7 @@ class PostVerificationObject(object):
                 points.append(np.dot(usafe_set_basis_matrix, result))
 
         if len(points) is 0:
-            print "Result (Deepest counter-example): No solution exists in this direction."
+            print("Result (Deepest counter-example): No solution exists in this direction.")
             Timers.toc('Deepest counter-example')
             return
 
@@ -184,7 +184,7 @@ class PostVerificationObject(object):
         max_depth = np.dot(depth_direction, points[0])
         max_depth_error_star = self.error_stars[0].clone()
         max_point = points[0]
-        for index in xrange(len(points)):
+        for index in range(len(points)):
             point = points[index]
             depth = np.dot(depth_direction, point)
             if depth > max_depth:
@@ -192,7 +192,7 @@ class PostVerificationObject(object):
                max_depth_error_star = self.error_stars[index].clone()
                max_point = point
 
-        print "The deepest point is: '{}' with max_depth '{}'".format(max_point, max_depth)
+        print("The deepest point is: '{}' with max_depth '{}'".format(max_point, max_depth))
         #print "Max error star: '{}'".format(max_depth_error_star)
         #max_depth_error_star = self.error_stars[max_depth_index].clone()
 
@@ -212,7 +212,7 @@ class PostVerificationObject(object):
             is_feasible = usafe_lpi.minimize(-1 * depth_direction, result, error_if_infeasible=False)
             if is_feasible:
                 feasible_point = np.dot(basis_matrix, result)
-                print "CounterExample: '{}' with depth '{}' in the given direction".format(feasible_point, max_depth)
+                print("CounterExample: '{}' with depth '{}' in the given direction".format(feasible_point, max_depth))
             Timers.toc('Deepest counter-example')
 
         else:
@@ -243,7 +243,7 @@ class PostVerificationObject(object):
             is_feasible = usafe_lpi.minimize(-1 * depth_direction, result, error_if_infeasible=False)
             if is_feasible:
                 feasible_point = np.dot(basis_matrix, result)
-                print "CounterExample: '{}' with depth '{}' in the given direction".format(feasible_point, max_depth)
+                print("CounterExample: '{}' with depth '{}' in the given direction".format(feasible_point, max_depth))
             Timers.toc('Deepest counter-example')
         return feasible_point
 
@@ -256,7 +256,7 @@ class PostVerificationObject(object):
         for pred in usafe_basis_preds:
             usafe_lpi.add_basis_constraint(pred.vector, pred.value)
 
-        for idx in xrange(len(usafe_basis_preds_list_in_first_mode)):
+        for idx in range(len(usafe_basis_preds_list_in_first_mode)):
 
             if idx >= start_index and idx <= end_index:
                 for pred in usafe_basis_preds_list_in_first_mode[idx]:
@@ -408,7 +408,7 @@ class PostVerificationObject(object):
         valid_ids_for_all_indices = []
         feasible_points = []
         basis_matrix = error_star_list[0].parent.star.parent.prestar.parent.star.basis_matrix
-        for idx_i in xrange(len(error_star_list)):
+        for idx_i in range(len(error_star_list)):
             valid_ids_for_current_index = []
             ## Create an LP instance
             usafe_lpi = LpInstance(self.num_dims, self.num_dims)
@@ -473,7 +473,7 @@ class PostVerificationObject(object):
         valid_ids_for_all_indices = []
         feasible_points = []
 
-        for idx_i in xrange(len(error_star_list)):
+        for idx_i in range(len(error_star_list)):
             valid_ids_for_current_index = []
             ## Create an LP instance
             usafe_lpi = LpInstance(self.num_dims, self.num_dims)
@@ -511,7 +511,7 @@ class PostVerificationObject(object):
     def compute_sequences_in_two_modes(self, error_star_list_per_mode, direction, compute_intersection=False):
         error_star_list_second_mode = error_star_list_per_mode[1]
         error_star_list_first_mode = []
-        for index in xrange(len(error_star_list_per_mode[0])):
+        for index in range(len(error_star_list_per_mode[0])):
             if (error_star_list_per_mode[0][index].total_steps < error_star_list_second_mode[0].total_steps):
                 error_star_list_first_mode.append(error_star_list_per_mode[0][index].clone())
             else:
@@ -527,7 +527,7 @@ class PostVerificationObject(object):
         longest_ce_in_first_mode = None
         longest_seq_in_first_mode = [0, 0]
         ce_length_in_first_mode = 0
-        for index in xrange(len(sequences_in_first_mode)):
+        for index in range(len(sequences_in_first_mode)):
             valid_ids = sequences_in_first_mode[index]
             cur_seq_len = (valid_ids[0]-valid_ids[len(valid_ids)-1])
             if len_of_longest_seq_in_first_mode < cur_seq_len:
@@ -541,7 +541,7 @@ class PostVerificationObject(object):
         longest_seq_in_second_mode = [0, 0]
         longest_ce_in_second_mode = None
         ce_length_in_second_mode = 0
-        for index in xrange(len(sequences_in_second_mode)):
+        for index in range(len(sequences_in_second_mode)):
             valid_ids = sequences_in_second_mode[index]
             cur_seq_len = (valid_ids[0] - valid_ids[len(valid_ids)-1])
             if len_of_longest_seq_in_second_mode < cur_seq_len:
@@ -556,7 +556,7 @@ class PostVerificationObject(object):
         first_mode_seq_for_each_second_mode_stars = []
         #usafe_basis_preds_list_in_first_mode = self.compute_usafe_basis_pred_in_star_basis_in_star_list(
         #            error_star_list_per_mode[0], compute_intersection)
-        for index in xrange(len(error_star_list_second_mode)):
+        for index in range(len(error_star_list_second_mode)):
 
             usafe_basis_preds_for_current_star_in_current_mode = self.compute_usafe_basis_pred_in_star_basis(
                         error_star_list_second_mode[index], compute_intersection)
@@ -596,7 +596,7 @@ class PostVerificationObject(object):
                     #sequence_1 = self.compute_sequences_intersection(sequence_1, first_mode_seq_for_each_second_mode_stars[valid_ids_for_current_index[idx]])
                 if sequence_1[1] == -1:
                     break
-                for idx in xrange(len(sequence_1)):
+                for idx in range(len(sequence_1)):
                     for pred in usafe_basis_preds_list_first_mode[idx]:
                         usafe_lpi.add_basis_constraint(pred.vector, pred.value)
 
@@ -624,7 +624,7 @@ class PostVerificationObject(object):
         end_idx_first_mode = -1
         end_idx_sec_mode = -1
         longest_ce = None
-        for index in xrange(len(final_seqs_for_second_mode)):
+        for index in range(len(final_seqs_for_second_mode)):
             current_ce_length = final_seqs_for_first_mode[index][1] - final_seqs_for_first_mode[index][0] + 1
             current_ce_length = current_ce_length + (final_seqs_for_second_mode[index][1] - final_seqs_for_second_mode[index][0] + 1)
             if current_ce_length > combined_max_ce_length:
@@ -664,7 +664,7 @@ class PostVerificationObject(object):
         output_indices.append(-1)
         output_indices.append(-1)
         valid_sequence = False
-        for idx in xrange(len(indices)):
+        for idx in range(len(indices)):
             if indices[idx] != -1 and valid_sequence is False:
                 output_indices[0] = indices[idx]
                 valid_sequence = True
@@ -685,19 +685,19 @@ class PostVerificationObject(object):
         Timers.tic('Longest counter-example')
 
         compute_intersection = True
-        ## Maintain the information of the modes and the respective time steps of their error stars
+        # Maintain the information of the modes and the respective time steps of their error stars
         error_star_modes = []
         error_star_list_per_mode = []
         error_stars_list_for_prev_mode = []
         error_stars_list_for_prev_mode.append(self.error_stars[0].clone())
         error_star_modes.append(self.error_stars[0].mode.name)
         no_of_modes = 1
-        for index in xrange(1, len(self.error_stars), 1):
+        for index in range(1, len(self.error_stars), 1):
             error_star = self.error_stars[index]
             if self.error_stars[index].parent.star.total_steps != self.error_stars[index-1].parent.star.total_steps:
                 error_star_list_per_mode.append(error_stars_list_for_prev_mode)
                 m_found = False
-                for m_idx in xrange(len(error_star_modes)):
+                for m_idx in range(len(error_star_modes)):
                     if error_star_modes[m_idx] is error_star.mode.name:
                         m_found = True
 
@@ -713,7 +713,7 @@ class PostVerificationObject(object):
         error_star_list_per_mode.append(error_stars_list_for_prev_mode)
 
         if len(error_star_list_per_mode) is 0:
-            print "Oops! No counter-example exists"
+            print("Oops! No counter-example exists")
             Timers.toc('Longest counter-example')
             return
 
@@ -726,7 +726,7 @@ class PostVerificationObject(object):
                 error_star_list = []
                 temp_error_star_list = []
                 prev_step = error_star_list_per_mode[0][0].total_steps -1
-                for idx in xrange(len(error_star_list_per_mode[0])):
+                for idx in range(len(error_star_list_per_mode[0])):
                     error_star = error_star_list_per_mode[0][idx]
                     if error_star.total_steps == prev_step+1:
                         temp_error_star_list.append(error_star)
@@ -741,7 +741,7 @@ class PostVerificationObject(object):
                     error_star_list.append(temp_error_star_list)
 
                 error_star_list_per_mode = error_star_list
-                for error_star_list_idx in xrange(len(error_star_list_per_mode)):
+                for error_star_list_idx in range(len(error_star_list_per_mode)):
                     valid_ids_for_all_indices, feasible_ces = self.compute_sequence_in_a_mode(
                         error_star_list_per_mode[error_star_list_idx], direction, compute_intersection)
 
@@ -761,8 +761,8 @@ class PostVerificationObject(object):
                 final_seq_end_idx = error_star_list_for_longest_ce[final_max_length_sequence[0]].total_steps
                 final_seq_start_idx = error_star_list_for_longest_ce[
                     final_max_length_sequence[len(final_max_length_sequence) - 1]].total_steps
-                print "Counter Example: '{}' in mode '{}' stays the longest in unsafe set from '{}' to '{}'".format(
-                    final_longest_ce, mode_name, final_seq_start_idx, final_seq_end_idx )
+                print("Counter Example: '{}' in mode '{}' stays the longest in unsafe set from '{}' to '{}'".format(
+                    final_longest_ce, mode_name, final_seq_start_idx, final_seq_end_idx ))
 
             else:
                 ## If only second mode intersects with the unsafe set
@@ -770,12 +770,12 @@ class PostVerificationObject(object):
                 final_max_length_sequence = []
                 final_longest_ce = []
                 final_error_star_list_idx = 0
-                for error_star_list_idx in xrange(len(error_star_list_per_mode)):
+                for error_star_list_idx in range(len(error_star_list_per_mode)):
                     valid_ids_for_all_indices, feasible_ces = self.compute_sequence_in_a_mode_wrt_init_mode(
                         error_star_list_per_mode[error_star_list_idx], direction, compute_intersection)
                     max_length_sequence_for_current_star_list = []
                     longest_ce_for_current_star_list = []
-                    for idx in xrange(len(valid_ids_for_all_indices)):
+                    for idx in range(len(valid_ids_for_all_indices)):
                         if len(valid_ids_for_all_indices[idx]) > len(max_length_sequence_for_current_star_list):
                             max_length_sequence_for_current_star_list = valid_ids_for_all_indices[idx]
                             longest_ce_for_current_star_list = feasible_ces[idx]
@@ -789,10 +789,10 @@ class PostVerificationObject(object):
                 final_seq_end_idx = error_star_list_for_longest_ce[final_max_length_sequence[0]].total_steps
                 final_seq_start_idx = error_star_list_for_longest_ce[
                     final_max_length_sequence[len(final_max_length_sequence) - 1]].total_steps
-                print "Counter Example: '{}' in mode '{}' stays the longest in unsafe set starting from '{}' to '{}' time " \
+                print("Counter Example: '{}' in mode '{}' stays the longest in unsafe set starting from '{}' to '{}' time " \
                       "steps after taking a transition from mode '{}' at time step '{}'".format(
                     final_longest_ce, mode_name, final_seq_start_idx, final_seq_end_idx, self.init_star.mode.name,
-                    error_star_list_for_longest_ce[0].parent.star.total_steps)
+                    error_star_list_for_longest_ce[0].parent.star.total_steps))
             Timers.toc('Longest counter-example')
             return final_longest_ce
 
@@ -817,20 +817,20 @@ class PostVerificationObject(object):
         if final_indices[1] == -1:
             longest_ce_start_step = error_star_list_second_mode[final_indices[3]].total_steps
             longest_ce_end_step = error_star_list_second_mode[final_indices[4]].total_steps
-            print "Counter Example '{}' stays from '{}' to '{}' in mode '{}'".format(final_longest_ce, longest_ce_start_step, longest_ce_end_step, error_star_modes[1])
+            print("Counter Example '{}' stays from '{}' to '{}' in mode '{}'".format(final_longest_ce, longest_ce_start_step, longest_ce_end_step, error_star_modes[1]))
         elif final_indices[3] == -1:
             longest_ce_start_step = error_star_list_first_mode[final_indices[1]].total_steps
             longest_ce_end_step = error_star_list_first_mode[final_indices[2]].total_steps
-            print "Counter Example '{}' stays from '{}' to '{}' in mode '{}'".format(final_longest_ce, longest_ce_start_step,
+            print("Counter Example '{}' stays from '{}' to '{}' in mode '{}'".format(final_longest_ce, longest_ce_start_step,
                                                                                      longest_ce_end_step,
-                                                                                     error_star_modes[0])
+                                                                                     error_star_modes[0]))
         else:
-            print "Counter Example '{}' stays from '{}' to '{}' in mode '{}' and from '{}' to '{}' in mode '{}'".format(final_longest_ce,
+            print("Counter Example '{}' stays from '{}' to '{}' in mode '{}' and from '{}' to '{}' in mode '{}'".format(final_longest_ce,
                                                                                                                     error_star_list_first_mode[final_indices[1]].total_steps,
                                                                                                                     error_star_list_first_mode[final_indices[2]].total_steps,
                                                                                                                     error_star_modes[0],
                                                                                                                     error_star_list_second_mode[final_indices[3]].total_steps,
                                                                                                                     error_star_list_second_mode[final_indices[4]].total_steps,
-                                                                                                                    error_star_modes[1])
+                                                                                                                    error_star_modes[1]))
         Timers.toc('Longest counter-example')
         return final_longest_ce

@@ -46,16 +46,16 @@ class HylaaEngine(object):
         # computation
         self.waiting_list = WaitingList()
         self.error_stars_list = WaitingList()
-        #self.reachable_stars_list = WaitingList()
+        # self.reachable_stars_list = WaitingList()
         self.reach_tree = ReachTree()
 
-        self.cur_state = None # a Star object
-        self.cur_step_in_mode = None # how much dwell time in current continuous post
-        self.max_steps_remaining = None # bound on num steps left in current mode ; assigned on pop
-        self.cur_sim_bundle = None # set on pop
+        self.cur_state = None  # a Star object
+        self.cur_step_in_mode = None  # how much dwell time in current continuous post
+        self.max_steps_remaining = None  # bound on num steps left in current mode ; assigned on pop
+        self.cur_sim_bundle = None  # set on pop
 
         self.reached_error = False
-        self.result = None # a HylaaResult... assigned on run()
+        self.result = None  # a HylaaResult... assigned on run()
 
         if self.settings.plot.plot_mode == PlotSettings.PLOT_NONE:
             self.settings.simulation.use_presimulation = True
@@ -92,7 +92,7 @@ class HylaaEngine(object):
 
         assert state is not None
 
-        for i in xrange(len(state.mode.transitions)):
+        for i in range(len(state.mode.transitions)):
             lp_solution = state.get_guard_intersection(i)
 
             if lp_solution is not None:
@@ -110,7 +110,7 @@ class HylaaEngine(object):
                 discrete_prestate_star = state.clone()
                 discrete_prestate_star.parent = ContinuousPostParent(state.mode, state.parent.star)
 
-                #if successor_mode.is_error:
+                # if successor_mode.is_error:
                 #    self.error_stars_list.add_deaggregated(discrete_prestate_star)
                 #    return
 
@@ -148,15 +148,15 @@ class HylaaEngine(object):
 
                         # convert origin offset to star basis and add to basis_center
                         successor = discrete_poststate_star
-                        #successor.start_center = successor.center
+                        # successor.start_center = successor.center
 
-                        ## Convert the basis_center into constraints to keep the center as zero for further simuation
+                        # Convert the basis_center into constraints to keep the center as zero for further simuation
                         successor.center_into_constraints(basis_center)
 
-                        #self.plotman.cache_star_verts(successor) # do this before committing temp constriants
+                        # self.plotman.cache_star_verts(successor) # do this before committing temp constriants
 
                         successor.start_basis_matrix = state.basis_matrix
-                        #successor.basis_matrix = None # gets assigned from sim_bundle on pop
+                        # successor.basis_matrix = None # gets assigned from sim_bundle on pop
 
                         successor.mode = transition.to_mode
 
@@ -228,7 +228,7 @@ class HylaaEngine(object):
                 # rv was false, some refinement occurred and we need to delete this star
 
                 print ("; make this a setting, deleting aggregated from plot")
-                #self.plotman.del_parent_successors(star.parent)
+                # self.plotman.del_parent_successors(star.parent)
         elif isinstance(star.parent, DiscretePostParent):
             # we need to modify basis_point based on the parent's center
             basis_point = basis_point - star.parent.prestar_basis_center
@@ -302,7 +302,7 @@ class HylaaEngine(object):
         state = self.cur_state
 
         current_node = None
-        if (self.cur_step_in_mode == 0):
+        if self.cur_step_in_mode == 0:
             current_node = self.reach_tree.get_node(state, 1)
         else:
             current_node = self.reach_tree.get_node(state, 0)
@@ -331,7 +331,7 @@ class HylaaEngine(object):
             current_node.new_transition(continuous_succ_node)
 
             self.check_guards(self.cur_state, continuous_succ_node)
-            #self.reachable_stars_list.add_deaggregated(self.cur_state.clone())
+            # self.reachable_stars_list.add_deaggregated(self.cur_state.clone())
 
             # refinement may occur while checking guards, which sets cur_state to None
             if self.cur_state is None:
@@ -393,7 +393,7 @@ class HylaaEngine(object):
 
         if self.settings.print_output:
             LpInstance.print_stats()
-            #Timers.print_stats()
+            # Timers.print_stats()
 
         self.result.time = Timers.timers["total"].total_secs
 
@@ -406,7 +406,7 @@ class HylaaEngine(object):
 
         assert len(init_list) > 0
 
-        # strengthen guards to inclunde invariants of targets
+        # strengthen guards to include invariants of targets
         ha = init_list[0][0].parent
         ha.do_guard_strengthening()
 
@@ -426,19 +426,15 @@ class HylaaEngine(object):
         else:
             # plot during computation
             self.plotman.compute_and_animate(self.do_step, self.is_finished)
-        print ("Waiting list '{}'".format((self.waiting_list.print_stats())))
+        print("Waiting list '{}'".format((self.waiting_list.print_stats())))
 
         error_stars = []
         while not self.error_stars_list.is_empty():
             error_star = self.error_stars_list.pop()
             error_stars.append(error_star)
 
-        #reachable_stars = []
-        #while not self.reachable_stars_list.is_empty():
-        #    reachable_star = self.reachable_stars_list.pop()
-        #    reachable_stars.append(reachable_star)
-
         return self.reach_tree
+
 
 class WaitingList(object):
     '''
@@ -485,7 +481,7 @@ class WaitingList(object):
             print (" {}. Deaggregated Successor in Mode '{}'".format(counter, star.mode.name))
             counter += 1
 
-        for mode, star in self.aggregated_mode_to_state.iteritems():
+        for mode, star in self.aggregated_mode_to_state.items():
             if isinstance(star.parent, AggregationParent):
                 print (" {}. Aggregated Sucessor in Mode '{}': {} stars".format(counter, mode, len(star.parent.stars)))
             else:
@@ -536,6 +532,7 @@ class WaitingList(object):
                 hull_star = make_aggregated_star([cur_star, new_star], hylaa_settings)
 
                 self.aggregated_mode_to_state[mode_name] = hull_star
+
 
 class FoundErrorTrajectory(RuntimeError):
     'gets thrown if a trajectory to the error states is found when settings.stop_when_error_reachable is True'

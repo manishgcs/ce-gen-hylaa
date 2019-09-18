@@ -626,7 +626,7 @@ class Star(Freezable):
         rv = []
 
         if start + 1 < end:
-            mid = (start + end) / 2
+            mid = (start + end) // 2
             mid_point = np.zeros(self.num_dims)
 
             star_lpi.minimize(dirs[mid], mid_point, error_if_infeasible=True)
@@ -677,7 +677,7 @@ class Star(Freezable):
             rv.append(point.copy())
 
             # add it in thirds, to ensure we don't miss anything
-            third = len(direction_list) / 3
+            third = len(direction_list) // 3
 
             # 0 to 1/3
             star_lpi.minimize(direction_list[third], point, error_if_infeasible=True)

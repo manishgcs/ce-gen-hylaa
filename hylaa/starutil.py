@@ -177,7 +177,7 @@ class GuardOptData(Freezable):
 
             rv.update_basis_matrix(basis_matrix)
 
-            for i in xrange(self.star.mode.u_constraints_b.shape[0]):
+            for i in range(self.star.mode.u_constraints_b.shape[0]):
                 rv.add_basis_constraint(self.star.mode.u_constraints_a[i, :], self.star.mode.u_constraints_b[i])
 
         return rv
@@ -191,21 +191,21 @@ class GuardOptData(Freezable):
         if mode.b_matrix is not None:
             # update combined_lpis
             if self.star.settings.opt_warm_start_lp:
-                for guard_index in xrange(len(mode.transitions)):
+                for guard_index in range(len(mode.transitions)):
                     combined_lpi = self.combined_lpis[guard_index]
                     combined_lpi.add_input_star(mode.u_constraints_a_t, mode.u_constraints_b,
                                                 input_star.input_basis_matrix)
 
             # update no-input and input lpis
             if self.star.settings.opt_decompose_lp:
-                for guard_index in xrange(len(mode.transitions)):
+                for guard_index in range(len(mode.transitions)):
                     guard = mode.transitions[guard_index]
                     constraint_min_list = self.guard_constraint_min_list[guard_index]
 
                     # for each constraint, optimize in its direction and add to constraint_min_list
                     result = np.zeros(self.star.num_dims)
 
-                    for condition_index in xrange(len(guard.condition_list)):
+                    for condition_index in range(len(guard.condition_list)):
                         lc = guard.condition_list[condition_index]
 
                         # we are going to upscale the star conditions, which gives a more accurate LP result
@@ -277,7 +277,7 @@ class GuardOptData(Freezable):
         if self.star.settings.opt_decompose_lp:
             no_input_basis_matrix = self.star.basis_matrix
 
-            for condition_index in xrange(len(condition_list)):
+            for condition_index in range(len(condition_list)):
                 if not self.star.settings.opt_warm_start_lp:
                     no_input_lpi = self.make_no_input_lpi(basis_matrix=no_input_basis_matrix)
                 else:
@@ -332,7 +332,7 @@ class GuardOptData(Freezable):
         constraints = self.star.mode.transitions[guard_index].condition_list
         constraint_vals = np.zeros(len(constraints))
 
-        for i in xrange(len(constraints)):
+        for i in range(len(constraints)):
             lc = constraints[i]
             sim_value = np.dot(self.star.center, lc.vector)
 
@@ -402,7 +402,7 @@ def array_str(nums):
 
         rv = ''
 
-        for i in xrange(size):
+        for i in range(size):
             num = nums[i]
 
             if abs(num) > tol:
@@ -432,12 +432,12 @@ def make_aggregated_star(star_list, hylaa_settings):
             hull_star.add_std_constraint_direction(-1 * lc.vector)
 
     if hylaa_settings.add_box_during_aggregation:
-        for dim in xrange(hull_star.num_dims):
+        for dim in range(hull_star.num_dims):
             vector = np.array([1.0 if d == dim else 0.0 for d in xrange(hull_star.num_dims)], dtype=float)
             hull_star.add_std_constraint_direction(vector)
             hull_star.add_std_constraint_direction(-1 * vector)
 
-    for star_index in xrange(1, len(star_list)):
+    for star_index in range(1, len(star_list)):
         star = star_list[star_index]
         hull_star.eat_star(star)
 
@@ -489,7 +489,7 @@ def export_counter_example(filename, mode, result, center, dims, step_size, tota
             inputs = list(result[2*dims:])
             inputs.reverse()
 
-            for step in xrange(total_steps):
+            for step in range(total_steps):
                 offset = step * mode.num_inputs
                 cur_inputs = inputs[offset:offset+mode.num_inputs]
 
@@ -500,7 +500,7 @@ def export_counter_example(filename, mode, result, center, dims, step_size, tota
             prev_input = ordered_inputs[0]
             count = 0
 
-            for i in xrange(len(ordered_inputs)):
+            for i in range(len(ordered_inputs)):
                 cur_input = ordered_inputs[i]
 
                 if np.allclose(cur_input, prev_input):

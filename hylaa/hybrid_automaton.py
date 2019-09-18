@@ -9,6 +9,7 @@ from hylaa.util import Freezable
 from hylaa.simutil import SimulationBundle
 from hylaa.containers import HylaaSettings
 
+
 class LinearConstraint(object):
     'a single linear constraint: vector * x <= value'
 
@@ -25,7 +26,7 @@ class LinearConstraint(object):
         if abs(self.value - other.value) > tol:
             rv = False
         else:
-            for i in xrange(self.vector.shape[0]):
+            for i in range(self.vector.shape[0]):
                 a = self.vector[i]
                 b = other.vector[i]
 
@@ -45,6 +46,7 @@ class LinearConstraint(object):
 
     def __repr__(self):
         return 'LinearConstraint({}, {})'.format(repr(self.vector), repr(self.value))
+
 
 class HyperRectangle(object):
     'An n-dimensional box'
@@ -73,7 +75,7 @@ class HyperRectangle(object):
         num_dims = len(self.dims)
         rv = []
 
-        for index in xrange(num_dims):
+        for index in range(num_dims):
             # min edge in dimension d
             pt = list(center)
             pt[index] = self.dims[index][0]
@@ -95,18 +97,18 @@ class HyperRectangle(object):
         max_iterator = 1
         is_flat = []
 
-        for d in xrange(num_dims):
+        for d in range(num_dims):
             if abs(self.dims[d][0] - self.dims[d][1]) > tol:
                 is_flat.append(False)
                 max_iterator *= 2
             else:
                 is_flat.append(True)
 
-        for it in xrange(max_iterator):
+        for it in range(max_iterator):
             point = []
 
             # construct point
-            for d in xrange(num_dims):
+            for d in range(num_dims):
                 if is_flat[d]:
                     point.append(self.dims[d][0])
                 else:
@@ -118,6 +120,7 @@ class HyperRectangle(object):
             rv.append(point)
 
         return rv
+
 
 class LinearAutomatonMode(Freezable):
     'A single mode of a hybrid automaton'
@@ -248,16 +251,18 @@ class LinearAutomatonMode(Freezable):
         assert len(u_constraints_b.shape) == 1
 
         # number of rows of b_matrix should match number of variables for x' = Ax + Bu + c to make sense
-        assert b_matrix.shape[0] == len(self.parent.variables), ("the number of rows in the input B matrix ({}) " + \
-            "must be equal to the number of variables in the automaton ({})").format(\
-            b_matrix.shape[0], len(self.parent.variables))
+        assert b_matrix.shape[0] == len(self.parent.variables), ("the number of rows in the input B matrix ({}) "
+                                                                 "must be equal to the number of variables in the "
+                                                                 "automaton ({})").format(b_matrix.shape[0],
+                                                                                          len(self.parent.variables))
         self.num_inputs = b_matrix.shape[1]
 
         assert u_constraints_a.shape[0] == u_constraints_b.shape[0], \
             "input constraints a-matrix and b-vector must have the same number of rows"
-        assert u_constraints_a.shape[1] == self.num_inputs, ("the number of columns in the input constraint " + \
-            "a-matrix ({}) must equal the number of variables in the input B matrix ({})").format( \
-            u_constraints_a.shape[1], self.num_inputs)
+        assert u_constraints_a.shape[1] == self.num_inputs, ("the number of columns in the input constraint a-matrix "
+                                                             "({}) must equal the number of variables in the "
+                                                             "input B matrix ({})").format(u_constraints_a.shape[1],
+                                                                                           self.num_inputs)
 
         self.b_matrix = b_matrix
         self.u_constraints_a = u_constraints_a
@@ -268,6 +273,7 @@ class LinearAutomatonMode(Freezable):
         extra = ' (error mode)' if self.is_error else ''
 
         return '[LinearAutomatonMode: ' + self.name + extra + ']'
+
 
 class LinearAutomatonTransition(Freezable):
     'A transition of a hybrid automaton'
@@ -287,6 +293,7 @@ class LinearAutomatonTransition(Freezable):
 
     def __str__(self):
         return self.from_mode.name + " -> " + self.to_mode.name
+
 
 class LinearHybridAutomaton(object):
     'The hybrid automaton'

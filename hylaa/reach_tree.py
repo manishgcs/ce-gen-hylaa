@@ -1,15 +1,15 @@
 
-import numpy as np
-
 class ReachTreeTransition(object):
         def __init__(self, succ_node):
             self.succ_node = succ_node
+
 
 class DiscreteTransition(ReachTreeTransition):
 
     def __init__(self, succ_node):
         assert isinstance(succ_node, ReachTreeNode)
         ReachTreeTransition.__init__(self,  succ_node)
+
 
 class ContinuousTransition(ReachTreeTransition):
 
@@ -29,36 +29,36 @@ class ReachTreeNode(object):
 
     def new_transition(self, succ_node):
 
-        if (self.state.mode.name == succ_node.state.mode.name):
+        if self.state.mode.name == succ_node.state.mode.name:
             c_transition = ContinuousTransition(succ_node)
             self.cont_transition = c_transition
         else:
             d_transition = DiscreteTransition(succ_node)
             self.disc_transitions.append(d_transition)
 
+
 class ReachTree(object):
 
     def __init__(self):
 
-        ## List of all the nodes in the tree
+        # List of all the nodes in the tree
         self.nodes = []
 
-        ## To keep track of the nodes yet to be visited while creating the tree
+        # To keep track of the nodes yet to be visited while creating the tree
         self.cont_leaf_nodes = []
         self.disc_leaf_nodes = []
-
 
     def get_node(self, state, cont_or_disc):
 
         if cont_or_disc == 0:
-            if (len(self.cont_leaf_nodes) > 0):
-                for index in xrange(len(self.cont_leaf_nodes)):
+            if len(self.cont_leaf_nodes) > 0:
+                for index in range(len(self.cont_leaf_nodes)):
                     node = self.cont_leaf_nodes[index]
                     if (node.state.mode.name == state.mode.name) and (node.state.total_steps == state.total_steps):
                         del self.cont_leaf_nodes[index]
                         return node
 
-        elif (cont_or_disc == 1):
+        elif cont_or_disc == 1:
             if len(self.cont_leaf_nodes) > 0:
                 del self.cont_leaf_nodes[:]
 
@@ -68,7 +68,7 @@ class ReachTree(object):
                 self.nodes.append(node)
                 return node
             else:
-                for index in xrange(len(self.disc_leaf_nodes)):
+                for index in range(len(self.disc_leaf_nodes)):
                     node = self.disc_leaf_nodes[index]
                     if (node.state.mode.name == state.mode.name) and (node.state.total_steps == state.total_steps):
                         del self.disc_leaf_nodes[index]
@@ -79,9 +79,9 @@ class ReachTree(object):
         node = ReachTreeNode(state, unsafe)
         if cont_or_disc == 0:
             self.cont_leaf_nodes.append(node)
-            #print "Continuous node: '{}' in location '{}'".format(state.total_steps, state.mode.name)
+            # print "Continuous node: '{}' in location '{}'".format(state.total_steps, state.mode.name)
         elif cont_or_disc == 1:
             self.disc_leaf_nodes.append(node)
-            #print "discrete node: '{}' in location '{}'".format(state.total_steps, state.mode.name)
+            # print "discrete node: '{}' in location '{}'".format(state.total_steps, state.mode.name)
         self.nodes.append(node)
         return node
