@@ -6,7 +6,7 @@ from hylaa.engine import HylaaEngine
 from hylaa.plotutil import PlotSettings
 from hylaa.star import init_hr_to_star
 from hylaa.timerutil import Timers
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 
 
 def define_ha(settings, usafe_r=None):
@@ -125,27 +125,25 @@ def run_hylaa(settings, init_r, usafe_r):
     engine = HylaaEngine(ha, settings)
     reach_tree = engine.run(init)
 
-    #post_verif_object = PostVerificationObject(settings, ha, init, usafe_set_constraint_list, error_stars)
-
-    #depth_direction = np.identity(len(init_r.dims))
-    #post_verif_object.compute_deepest_ce(depth_direction[1])
-
-    new_pv_object = PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
-    return new_pv_object
+    return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
 
 if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(1.5, 2.5), (1, 1.1)])
-    #usafe_r = HyperRectangle([(0, 0.5), (-0.2, 0.2)]) #ToCheck for Depth
+    # usafe_r = HyperRectangle([(0, 0.5), (-0.2, 0.2)]) #ToCheck for Depth
 
-    #usafe_r = HyperRectangle([(0.5, 1.0), (-0.2, 0.1)]) #Small
-    #usafe_r = HyperRectangle([(0, 1.1), (-0.3, 0.3)]) #Medium
-    usafe_r = HyperRectangle([(0, 1.9), (-0.3, 0.7)])  # Large:
+    # usafe_r = HyperRectangle([(0.5, 1.0), (-0.2, 0.1)])  # Small orig
+    # usafe_r = HyperRectangle([(0.5, 0.7), (-0.2, 0.1)]) #Small checking in MILP
+    usafe_r = HyperRectangle([(0, 1.1), (-0.3, 0.3)])  # Medium
+    # usafe_r = HyperRectangle([(0, 1.9), (-0.3, 0.7)])  # Large:
 
-    new_pv_object = run_hylaa(settings, init_r, usafe_r)
-    longest_ce = new_pv_object.compute_longest_ce()
-    depth_direction = np.identity(len(init_r.dims))
-    deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[0])
-    robust_ce = new_pv_object.compute_robust_ce_new()
+    pv_object = run_hylaa(settings, init_r, usafe_r)
+    # longest_ce = pv_object.compute_longest_ce()
+    # depth_direction = np.identity(len(init_r.dims))
+    # deepest_ce = pv_object.compute_deepest_ce(depth_direction[0])
+    # robust_ce = pv_object.compute_robust_ce_new()
+    pv_object.compute_milp_counterexample('Tanks')
+    pv_object.compute_z3_counterexamples()
+    # z3_counter_examples = pv_object.compute_counter_examples_using_z3(2)
     Timers.print_stats()

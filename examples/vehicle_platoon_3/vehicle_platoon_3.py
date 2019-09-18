@@ -4,8 +4,7 @@ from hylaa.star import init_hr_to_star
 from hylaa.engine import HylaaSettings, HylaaEngine
 from hylaa.containers import PlotSettings
 from hylaa.timerutil import Timers
-from hylaa.new_pv_container import PVObject
-from hylaa.simutil import compute_simulation
+from hylaa.pv_container import PVObject
 import matplotlib.pyplot as plt
 
 
@@ -94,7 +93,7 @@ def define_ha(settings, usafe_r):
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-        ## Create the list of constraints defining unsafe set if hyperrectangle representation is not given
+        # Create the list of constraints defining unsafe set if hyperrectangle representation is not given
         usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0], -1.7)) # e1 >= 1.7
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -125,7 +124,7 @@ def define_settings():
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    #s = HylaaSettings(step=0.04, max_time=5.0, plot_settings=plot_settings)
+    # s = HylaaSettings(step=0.04, max_time=5.0, plot_settings=plot_settings)
     s = HylaaSettings(step=0.5, max_time=5.0, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
 
@@ -145,33 +144,14 @@ def run_hylaa(settings, init_r, usafe_r):
 
 
 if __name__ == '__main__':
-    step = 0.5
-    max_time = 5.0
     settings = define_settings()
     init_r = HyperRectangle([(0.9, 1.1), (0.9, 1.1), (0.9, 1.1), (0.9, 1.1), (0.9, 1.1), (0.9, 1.1), (0.9, 1.1),
                              (0.9, 1.1), (0.9, 1.1), (0, 0)])
 
     usafe_r = None
-    new_pv_object = run_hylaa(settings, init_r, usafe_r)
-    new_pv_object.compute_longest_ce()
+    pv_object = run_hylaa(settings, init_r, usafe_r)
+    pv_object.compute_longest_ce()
 
     depth_direction = np.identity(len(init_r.dims))
-    deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[1])
+    deepest_ce = pv_object.compute_deepest_ce(depth_direction[1])
     Timers.print_stats()
-    simulate_ce = deepest_ce
-    loc1_a_matrix = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                              [0, 0, -1, 0, 0, 0, 0, 0, 0, 0],
-                              [1.605, 4.868, -3.5754, -0.8198, 0.427, -0.045, -0.1942, 0.3626, -0.0946, 0],
-                              [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                              [0, 0, 1, 0, 0, -1, 0, 0, 0, 0],
-                              [0.8718, 3.814, -0.0754, 1.1936, 3.6258, -3.2396, -0.595, 0.1294, -0.0796, 0],
-                              [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                              [0, 0, 0, 0, 0, 1, 0, 0, -1, 0],
-                              [0.7132, 3.573, -0.0964, 0.8472, 3.2568, -0.0876, 1.2726, 3.072, -3.1356, 0],
-                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=float)
-    loc1_c_vector = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1], dtype=float)
-
-    simulation = compute_simulation(simulate_ce, loc1_a_matrix, loc1_c_vector, step, max_time / step)
-    sim_t = np.array(simulation).T
-    plt.plot(sim_t[0], sim_t[1], 'ro')
-    plt.show()

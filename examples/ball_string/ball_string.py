@@ -8,6 +8,7 @@ from hylaa.engine import HylaaSettings
 from hylaa.engine import HylaaEngine
 from hylaa.plotutil import PlotSettings
 
+
 def define_ha():
     '''make the hybrid automaton and return it'''
 
@@ -29,6 +30,7 @@ def define_ha():
     trans.condition_list.append(LinearConstraint([-0.0, -1.0], -0.0)) # v >= 0
 
     return ha
+
 
 def define_init_states(ha):
     '''returns a list of (mode, HyperRectangle)'''

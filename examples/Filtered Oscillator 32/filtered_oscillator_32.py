@@ -4,7 +4,7 @@ from hylaa.hybrid_automaton import LinearHybridAutomaton, HyperRectangle, Linear
 from hylaa.star import init_hr_to_star
 from hylaa.engine import HylaaSettings, HylaaEngine
 from hylaa.containers import PlotSettings
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 from hylaa.timerutil import Timers
 
 
@@ -266,9 +266,10 @@ def define_ha(settings, usafe_r):
     trans3_error = ha.new_transition(loc3, error)
 
     usafe_set_constraint_list = []
-    usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
-    for constraint in usafe_star.constraint_list:
-        usafe_set_constraint_list.append(constraint)
+    if usafe_r is not None:
+        usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
+        for constraint in usafe_star.constraint_list:
+            usafe_set_constraint_list.append(constraint)
 
     for constraint in usafe_set_constraint_list:
         trans1_error.condition_list.append(constraint)
@@ -309,9 +310,7 @@ def run_hylaa(settings, init_r, usafe_r):
     engine = HylaaEngine(ha, settings)
     reach_tree = engine.run(init)
 
-    new_pv_object = PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
-
-    return new_pv_object
+    return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
 
 if __name__ == '__main__':
@@ -326,10 +325,11 @@ if __name__ == '__main__':
                              (0, 0.1), (0, 0.1), (0, 0.01), (0, 0.01), (0, 0.01), (0, 0.01), (0, 3), (0, 1.2), (0, 3), (-0.4, 0.6),
                              (-5, 2), (-6, 2), (-6, 4), (-4, 4)])
 
-    new_pv_object = run_hylaa(settings, init_r, usafe_r)
+    pv_object = run_hylaa(settings, init_r, usafe_r)
 
-    #longest_ce = new_pv_object.compute_longest_ce()
-    new_pv_object.dump_path_constraints_for_milp()
-    z3_counter_examples = new_pv_object.compute_counter_examples_using_z3(2)
+    # longest_ce = pv_object.compute_longest_ce()
+    # pv_object.compute_milp_counterexamples('Filtered')
+    # z3_counter_examples = pv_object.compute_counter_examples_using_z3(20)
+    pv_object.compute_z3_counterexamples()
 
     Timers.print_stats()

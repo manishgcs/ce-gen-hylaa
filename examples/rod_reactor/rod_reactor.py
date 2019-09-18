@@ -1,5 +1,3 @@
-'''
-'''
 
 import numpy as np
 from hylaa.hybrid_automaton import LinearHybridAutomaton, LinearConstraint, HyperRectangle
@@ -7,9 +5,8 @@ from hylaa.engine import HylaaSettings
 from hylaa.engine import HylaaEngine
 from hylaa.plotutil import PlotSettings
 from hylaa.star import init_hr_to_star
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 from hylaa.simutil import compute_simulation
-from hylaa.post_verif_container import PostVerificationObject
 
 
 def define_ha(settings, usafe_r=None):
@@ -109,21 +106,16 @@ def run_hylaa(settings, init_r, usafe_r):
     engine = HylaaEngine(ha, settings)
     reach_tree = engine.run(init)
 
-    #post_verif_object = PostVerificationObject(settings, ha, init, usafe_set_constraint_list, error_stars)
-    #counterExamples = post_verif_object.compute_counter_examples(direction)
-
-    new_pv_object = PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
-
-    return new_pv_object
+    return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
 
 if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(540, 541), (10, 20), (10, 20)])
 
-    ## Direction(s) in which we intend to minimize co-efficients (alpha's)
+    # Direction(s) in which we intend to minimize co-efficients (alpha's)
     direction = np.ones(len(init_r.dims))
 
-    ##direction = np.identity(len(init_r.dims))
-    new_pv_object = run_hylaa(settings, init_r, None)
-    longest_ce = new_pv_object.compute_longest_ce()
+    # direction = np.identity(len(init_r.dims))
+    pv_object = run_hylaa(settings, init_r, None)
+    longest_ce = pv_object.compute_longest_ce()

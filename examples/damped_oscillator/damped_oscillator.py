@@ -12,6 +12,7 @@ from hylaa.engine import HylaaSettings
 from hylaa.engine import HylaaEngine
 from hylaa.containers import PlotSettings, SimulationSettings
 
+
 def define_ha():
     '''make the hybrid automaton and return it'''
 
@@ -22,9 +23,9 @@ def define_ha():
     a_matrix = np.array([[-0.1, 1], [-1, -0.1]])
     c_vector = np.array([0, 0], dtype=float)
     loc1.set_dynamics(a_matrix, c_vector)
-    
 
     return ha
+
 
 def define_init_states(ha):
     '''returns a list of (mode, HyperRectangle)'''
@@ -48,6 +49,7 @@ def define_settings():
     
     return s
 
+
 def run_hylaa(settings):
     'Runs hylaa with the given settings, returning the HylaaResult object.'
     ha = define_ha()
@@ -57,6 +59,7 @@ def run_hylaa(settings):
     engine.run(init)
 
     return engine.result
+
 
 if __name__ == '__main__':
     settings = define_settings()

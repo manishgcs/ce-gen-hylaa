@@ -5,7 +5,7 @@ from hylaa.engine import HylaaSettings
 from hylaa.engine import HylaaEngine
 from hylaa.plotutil import PlotSettings
 from hylaa.star import init_hr_to_star
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 from hylaa.simutil import compute_simulation
 import matplotlib.pyplot as plt
 
@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 def define_ha(settings, usafe_r=None):
     '''make the hybrid automaton and return it'''
 
-    #cap_d = 0.41667
-    #vs = 12
-    #t_max = 0.00025
+    # cap_d = 0.41667
+    # vs = 12
+    # t_max = 0.00025
     cap_d = 0.42857
     cap_t = 0.00005
     vs = 20
@@ -167,29 +167,10 @@ def run_hylaa(settings, init_r, usafe_r):
 
 
 if __name__ == '__main__':
-    step = 0.000001
-    max_time = 0.00005
     settings = define_settings()
     init_r = HyperRectangle([(0.0, 1), (0.0, 1), (0.0, 0.0), (0.0, 0.0)])
-    new_pv_object = run_hylaa(settings, init_r, None)
-    longest_ce = new_pv_object.compute_longest_ce()
+    pv_object = run_hylaa(settings, init_r, None)
+    longest_ce = pv_object.compute_longest_ce()
     depth_direction = np.identity(len(init_r.dims))
-    deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[1])
-    robust_ce = new_pv_object.compute_robust_ce()
-    simulate_ce = deepest_ce
-    vs = 20
-    open1_a_matrix = np.array([[0, -21052.6316, 0, 0], [42105.2632, -40100.2506, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
-                              dtype=float)
-    open1_c_vector = np.array([0 * vs, 0 * vs, 1, 1], dtype=float)
-    simulation = compute_simulation(simulate_ce, open1_a_matrix, open1_c_vector, step, 22*step / step)
-    sim_t = np.array(simulation).T
-    plt.plot(sim_t[1], sim_t[0], 'ro')
-    # basis_center = [0.18122033, -1.38218118]
-    closed1_a_matrix = np.array([[0, -21052.6316, 0, 0], [42105.2632, -40100.2506, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
-                                dtype=float)
-    closed1_c_vector = np.array([21052.6316 * vs, 0 * vs, 1, 1], dtype=float)
-    init_state_in_freefall = simulation[len(simulation) - 1]
-    simulation = compute_simulation(init_state_in_freefall, closed1_a_matrix, closed1_c_vector, step, 29*step / step)
-    sim_t = np.array(simulation).T
-    plt.plot(sim_t[1], sim_t[0], 'ro')
-    plt.show()
+    deepest_ce = pv_object.compute_deepest_ce(depth_direction[1])
+    robust_ce = pv_object.compute_robust_ce()

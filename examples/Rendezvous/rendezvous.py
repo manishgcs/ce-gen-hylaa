@@ -5,7 +5,7 @@ from hylaa.engine import HylaaSettings
 from hylaa.engine import HylaaEngine
 from hylaa.plotutil import PlotSettings
 from hylaa.star import init_hr_to_star
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 from hylaa.simutil import compute_simulation
 import matplotlib.pyplot as plt
 
@@ -59,7 +59,7 @@ def define_ha(settings, usafe_r=None):
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-        #usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0, 0.0], -100))  # x < -100
+        # usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0, 0.0], -100))  # x < -100
         usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0, 0.0], -800))  # x < -800
         usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0, 0.0, 0.0, 0.0], 850))  # x > -850
     else:
@@ -112,8 +112,8 @@ def run_hylaa(settings, init_r, usafe_r):
 if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(-925, -875), (-425, -375), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
-    new_pv_object = run_hylaa(settings, init_r, None)
-    new_pv_object.compute_longest_ce()
-    #longest_ce = new_pv_object.compute_longest_ce()
-    #depth_direction = np.identity(len(init_r.dims))
-    #deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[0])
+    pv_object = run_hylaa(settings, init_r, None)
+    pv_object.compute_longest_ce()
+    # longest_ce = pv_object.compute_longest_ce()
+    # depth_direction = np.identity(len(init_r.dims))
+    # deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[0])

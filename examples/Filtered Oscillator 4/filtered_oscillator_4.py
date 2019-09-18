@@ -4,10 +4,11 @@ from hylaa.hybrid_automaton import LinearHybridAutomaton, HyperRectangle, Linear
 from hylaa.star import init_hr_to_star
 from hylaa.engine import HylaaSettings, HylaaEngine
 from hylaa.containers import PlotSettings
-from hylaa.new_pv_container import PVObject
+from hylaa.pv_container import PVObject
 from hylaa.timerutil import Timers
 from hylaa.simutil import compute_simulation
 import matplotlib.pyplot as plt
+
 
 def define_ha(settings, usafe_r):
     # x' = Ax + Bu + c
@@ -32,7 +33,7 @@ def define_ha(settings, usafe_r):
     loc2 = ha.new_mode('loc2')
 
     loc2.a_matrix = np.array(
-        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
+        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
          [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
 
     loc2.c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
@@ -45,7 +46,7 @@ def define_ha(settings, usafe_r):
     loc3 = ha.new_mode('loc3')
 
     loc3.a_matrix = np.array(
-        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
+        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
          [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
 
     loc3.c_vector = np.array([1.4, -0.7, 0, 0, 0, 0], dtype=float)
@@ -58,7 +59,7 @@ def define_ha(settings, usafe_r):
     loc4 = ha.new_mode('loc4')
 
     loc4.a_matrix = np.array(
-        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
+        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
          [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
 
     loc4.c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
@@ -109,14 +110,13 @@ def define_ha(settings, usafe_r):
     usafe_set_constraint_list = []
 
     if usafe_r is None:
-        #usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, -1], -0.2))
-        usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, 1], 0.3))
-        #usafe_set_constraint_list.append(LinearConstraint([0, -1, 0, 0, 0, 0], 0.3))
-
-
-    #usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
-    #for constraint in usafe_star.constraint_list:
-    #    usafe_set_constraint_list.append(constraint)
+        usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, -1], -0.2))
+        # usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, 1], 0.3))
+        # usafe_set_constraint_list.append(LinearConstraint([0, -1, 0, 0, 0, 0], 0.3))
+    else:
+        usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
+        for constraint in usafe_star.constraint_list:
+            usafe_set_constraint_list.append(constraint)
 
     for constraint in usafe_set_constraint_list:
         trans4_error.condition_list.append(constraint)
@@ -156,59 +156,62 @@ def run_hylaa(settings, init_r, usafe_r):
     engine = HylaaEngine(ha, settings)
     reach_tree = engine.run(init)
 
-    new_pv_object = PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
+    return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
-    return new_pv_object
+
+def compute_simulation_py(longest_ce, deepest_ce):
+    step = 0.08
+    max_time = 4.0
+    loc3_a_matrix = np.array(
+       [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
+        [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
+
+    loc3_c_vector = np.array([1.4, -0.7, 0, 0, 0, 0], dtype=float)
+    deepest_simulation = compute_simulation(deepest_ce, loc3_a_matrix, loc3_c_vector, step, step*16 / step)
+    longest_simulation = compute_simulation(longest_ce, loc3_a_matrix, loc3_c_vector, step, step*16 / step)
+    sim_t = np.array(deepest_simulation).T
+    plt.plot(sim_t[1], sim_t[5], 'g-')
+    sim_t = np.array(longest_simulation).T
+    plt.plot(sim_t[1], sim_t[5], 'r-')
+    init_state_in_loc4 = deepest_simulation[len(deepest_simulation) - 1]
+    loc4_a_matrix = np.array(
+       [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
+        [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
+
+    loc4_c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
+    deepest_simulation = compute_simulation(init_state_in_loc4, loc4_a_matrix, loc4_c_vector, step, step*5 / step)
+    sim_t = np.array(deepest_simulation).T
+    plt.plot(sim_t[1], sim_t[5], 'g-')
+    init_state_in_loc4 = longest_simulation[len(longest_simulation) - 1]
+    longest_simulation = compute_simulation(init_state_in_loc4, loc4_a_matrix, loc4_c_vector, step, step*5 / step)
+    sim_t = np.array(longest_simulation).T
+    plt.plot(sim_t[1], sim_t[5], 'r-')
+
+    loc2_a_matrix = np.array(
+        [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0],
+         [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
+
+    loc2_c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
+    init_state_in_loc2 = deepest_simulation[len(deepest_simulation) - 1]
+    deepest_simulation = compute_simulation(init_state_in_loc2, loc2_a_matrix, loc2_c_vector, step, step * 16 / step)
+    sim_t = np.array(deepest_simulation).T
+    plt.plot(sim_t[1], sim_t[5], 'g-')
+    plt.show()
 
 
 if __name__ == '__main__':
-    #step = 0.08
-    #max_time = 4.0
+
     settings = define_settings()
     init_r = HyperRectangle([(0.2, 0.3), (-0.1, 0.1), (0, 0), (0, 0), (0, 0), (0, 0)])
 
-    #usafe_r = HyperRectangle([(0.4, 0.7), (-0.5, 0.1), (0.0, 0.6), (0.0, 0.6), (0, 0.6), (0, 0.6)])
+    # usafe_r = HyperRectangle([(0.4, 0.7), (-0.5, 0.1), (0.0, 0.6), (0.0, 0.6), (0, 0.6), (0, 0.6)])
 
-    new_pv_object = run_hylaa(settings, init_r, None)
+    pv_object = run_hylaa(settings, init_r, None)
 
-    longest_ce = new_pv_object.compute_longest_ce()
-    depth_direction = np.identity(len(init_r.dims))
-    deepest_ce = new_pv_object.compute_deepest_ce(depth_direction[5])
-    robust_ce = new_pv_object.compute_robust_ce_new()
-    new_pv_object.dump_path_constraints_for_milp()
-    #loc3_a_matrix = np.array(
-    #    [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
-    #     [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
-
-    #loc3_c_vector = np.array([1.4, -0.7, 0, 0, 0, 0], dtype=float)
-    #deepest_simulation = compute_simulation(deepest_ce, loc3_a_matrix, loc3_c_vector, step, step*16 / step)
-    #longest_simulation = compute_simulation(longest_ce, loc3_a_matrix, loc3_c_vector, step, step*16 / step)
-    #sim_t = np.array(deepest_simulation).T
-    #plt.plot(sim_t[1], sim_t[5], 'g-')
-    #sim_t = np.array(longest_simulation).T
-    #plt.plot(sim_t[1], sim_t[5], 'r-')
-    #init_state_in_loc4 = deepest_simulation[len(deepest_simulation) - 1]
-    #loc4_a_matrix = np.array(
-    #    [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
-    #     [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
-
-    #loc4_c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
-    #deepest_simulation = compute_simulation(init_state_in_loc4, loc4_a_matrix, loc4_c_vector, step, step*5 / step)
-    #sim_t = np.array(deepest_simulation).T
-    #plt.plot(sim_t[1], sim_t[5], 'g-')
-    #init_state_in_loc4 = longest_simulation[len(longest_simulation) - 1]
-    #longest_simulation = compute_simulation(init_state_in_loc4, loc4_a_matrix, loc4_c_vector, step, step*5 / step)
-    #sim_t = np.array(longest_simulation).T
-    #plt.plot(sim_t[1], sim_t[5], 'r-')
-
-    #loc2_a_matrix = np.array(
-    #    [[-2, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0], [5, 0, -5, 0, 0, 0], \
-    #     [0, 0, 5, -5, 0, 0], [0, 0, 0, 5, -5, 0], [0, 0, 0, 0, 5, -5]], dtype=float)
-
-    #loc2_c_vector = np.array([-1.4, 0.7, 0, 0, 0, 0], dtype=float)
-    #init_state_in_loc2 = deepest_simulation[len(deepest_simulation) - 1]
-    #deepest_simulation = compute_simulation(init_state_in_loc2, loc2_a_matrix, loc2_c_vector, step, step * 16 / step)
-    #sim_t = np.array(deepest_simulation).T
-    #plt.plot(sim_t[1], sim_t[5], 'g-')
-    #plt.show()
+    # longest_ce = pv_object.compute_longest_ce()
+    # depth_direction = np.identity(len(init_r.dims))
+    # deepest_ce = pv_object.compute_deepest_ce(depth_direction[5])
+    # robust_ce = pv_object.compute_robust_ce_new()
+    # pv_object.compute_milp_counterexample('Filtered')
+    # z3_counter_examples = pv_object.compute_counter_examples_using_z3(2)
     Timers.print_stats()
