@@ -14,6 +14,7 @@ from scipy.integrate import odeint
 from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import expm as sparse_expm
 from scipy.linalg import expm as dense_expm
+from numpy.linalg import matrix_power as mat_pow
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from hylaa.util import Freezable
 from hylaa.timerutil import Timers
 import hylaa.openblas as openblas
 from hylaa.glpk_interface import LpInstance
+
 
 class DyData(Freezable):
     'a container for dynamics-related data in a serializable (picklable) format'
@@ -222,6 +224,32 @@ class SimulationBundle(Freezable):
 
         self.freeze_attrs()
 
+    def simulate_origin_disc(self, start, steps, cur_step):
+        result = []
+        prev_val = start
+        for idx in range(cur_step, cur_step + steps, 1):
+            a_exp = mat_pow(self.dy_data.dense_a_matrix, idx - 1)
+            new_val = np.array(np.matmul(a_exp, self.dy_data.dense_b_vector).flatten().tolist()[0]) + np.array(prev_val)
+            prev_val = new_val
+            result.append(new_val)
+        return result
+        # result = raw_sim_one_disc(start, steps, cur_step, self.dy_data, origin)
+        # return result
+
+    def simulate_vecs_disc(self, start_list, steps, cur_step):
+        result = []
+        prev_val = start_list
+        for idx in range(cur_step, cur_step+steps, 1):
+            new_val = np.matmul(self.dy_data.dense_a_matrix.transpose(), prev_val)
+            # print(new_val.shape)
+            single_step_result = np.empty((self.num_dims, self.num_dims))
+            for dim in range(self.num_dims):
+                single_step_result[dim] = np.array(new_val.tolist()[dim])
+            result.append(single_step_result)
+            prev_val = new_val
+
+        return result
+
     def simulate_origin(self, start, steps, include_step_zero=False):
         '''simulate the origin, from the last point in self.origin_sim, for a certain number of steps'''
 
@@ -338,7 +366,7 @@ class SimulationBundle(Freezable):
 
         Timers.toc("sim + overhead")
 
-    def get_vecs_origin_at_step(self, step, max_steps):
+    def get_vecs_origin_at_step(self, step, max_steps, discrete=False):
         '''
         get the exact state of the basis vectors and origin simulation
         at a specific, absolute step number (multiply by self.size to get time)
@@ -355,12 +383,17 @@ class SimulationBundle(Freezable):
         if step == 0 or self.step_offset is None or step - self.step_offset < 0:
             if self.step_offset != 0:
                 # reset origin sim and, if needed, vec_values
-                self.origin_sim = [np.zeros((self.num_dims,))] # index is step (may be offset)
-                self.vec_values = [np.identity(self.num_dims)] # index is step (may be offset)
+                self.origin_sim = [np.zeros((self.num_dims,))]  # index is step (may be offset)
+                self.vec_values = [np.identity(self.num_dims)]  # index is step (may be offset)
                 self.step_offset = 0
 
         rel_step = step - self.step_offset
         assert rel_step >= 0, 'relative step < 0?'
+
+        if discrete is True:
+            if self.dy_data.dense_a_matrix is None:
+                self.dy_data.dense_a_matrix = self.dy_data.sparse_a_matrix.todense()
+                self.dy_data.dense_b_vector = self.dy_data.sparse_b_vector.todense().transpose()
 
         # if we need to compute more steps
         while rel_step >= len(self.origin_sim):
@@ -384,20 +417,28 @@ class SimulationBundle(Freezable):
             # advance origin
             start = self.origin_sim[-1].copy()
             self.origin_sim = None
-            self.origin_sim = self.simulate_origin(start, num_new_steps)
+
+            if discrete is False:
+                self.origin_sim = self.simulate_origin(start, num_new_steps)
+            else:
+                self.origin_sim = self.simulate_origin_disc(start, num_new_steps, step)
+                print(step)
 
             # also advance vec_values
             start_list = self.vec_values[-1].copy()
             self.vec_values = None
 
             if self.settings.sim_mode == SimulationSettings.SIMULATION:
-                self.vec_values = self.simulate_vecs(start_list, num_new_steps)
+                if discrete is False:
+                    self.vec_values = self.simulate_vecs(start_list, num_new_steps)
+                else:
+                    self.vec_values = self.simulate_vecs_disc(start_list, num_new_steps, step)
             elif self.settings.sim_mode == SimulationSettings.MATRIX_EXP:
                 self.vec_values = self.matrix_exp_vecs(start_list, num_new_steps)
 
         Timers.toc("sim + overhead")
 
-        return (self.vec_values[rel_step], self.origin_sim[rel_step])
+        return self.vec_values[rel_step], self.origin_sim[rel_step]
 
     def matrix_exp_vecs(self, start_list, num_steps):
         'use the one-step matrix exp strategy to get the next value of the basis vectors and origin simulation'
@@ -426,7 +467,7 @@ class SimulationBundle(Freezable):
         sim_start_time = time.time()
 
         args = []
-        origin = np.zeros((self.num_dims), dtype=float)
+        origin = np.zeros(self.num_dims, dtype=float)
 
         for dim in range(num_inputs):
             b_col = csr_matrix(b_matrix[:, dim])
@@ -492,6 +533,7 @@ class SimulationBundle(Freezable):
 
         return rv
 
+
 # shared time variable used for occasional printing across processes
 SHARED_NEXT_PRINT = multiprocessing.Value('d')
 SHARED_COMPLETED_SIMS = multiprocessing.Value('i')
@@ -517,13 +559,27 @@ def pool_sim_func(args):
                 SHARED_NEXT_PRINT.value = now + settings.print_interval_secs
 
                 elapsed_time = now - sim_start_time
-                percent = 100.0 * (SHARED_COMPLETED_SIMS.value) / (num_dims)
+                percent = 100.0 * SHARED_COMPLETED_SIMS.value / num_dims
                 total_time = elapsed_time / (percent / 100.0)
 
                 print ("{}/{} simulations ({:.1f}%); {:.1f}s (elapsed) / {:.1f}s (estimate)".format(
                     SHARED_COMPLETED_SIMS.value, num_dims, percent, elapsed_time, total_time))
 
     return rv
+
+
+def raw_sim_one_disc(start, steps, cur_step, dy_data):
+    result = []
+
+    prev_affine_val = np.zeros(len(start))
+    for idx in range(cur_step, cur_step + steps, 1):
+        a_exp = mat_pow(dy_data.dense_a_matrix, idx - 1)
+        new_affine_val = np.array(np.matmul(a_exp, dy_data.dense_b_vector).flatten().tolist()[0]) + np.array(prev_affine_val)
+        prev_affine_val = new_affine_val
+        # abc = np.matmul(mat_pow(dy_data.dense_a_matrix, idx), np.array(start)).tolist()[0]
+        new_state = np.matmul(mat_pow(dy_data.dense_a_matrix, idx), np.array(start)).tolist()[0] + prev_affine_val
+        result.append(new_state)
+    return result
 
 
 def raw_sim_one(start, steps, dy_data, settings, include_step_zero=False):
@@ -552,22 +608,38 @@ def raw_sim_one(start, steps, dy_data, settings, include_step_zero=False):
     return result
 
 
-def compute_simulation(start, a_matrix, b_vector, step_time, max_steps):
+def compute_simulation(start, a_matrices, b_vectors, max_steps_list, step_time=1, disc_dyn=False):
         '''test simutil result'''
 
         # x' = x,   y' = 1
-        #a_matrix = [[1.0, 0.0], [0.0, 0.0]]
-        #b_vector = [0.0, 1.0]
-        #step_time = 0.25
-        #max_steps = 5
+        # a_matrix = [[1.0, 0.0], [0.0, 0.0]]
+        # b_vector = [0.0, 1.0]
+        # step_time = 0.25
+        # max_steps = 5
 
-        sim_sett = SimulationSettings(step_time)
-        sim_sett.stdout = False
-        sim_sett.threads = 1
+        sim = [start]
+        for idx in range(len(a_matrices)):
+            a_matrix = a_matrices[idx]
+            b_vector = b_vectors[idx]
+            max_steps = int(max_steps_list[idx])
+            sim_sett = SimulationSettings(step_time)
+            sim_sett.stdout = False
+            sim_sett.threads = 1
 
-        bundle = SimulationBundle(a_matrix, b_vector, sim_sett)
-        result = raw_sim_one(start, max_steps, bundle.dy_data, bundle.settings, include_step_zero=True)
-        return result
+            bundle = SimulationBundle(a_matrix, b_vector, sim_sett)
+
+            if bundle.dy_data.dense_a_matrix is None:
+                bundle.dy_data.dense_a_matrix = bundle.dy_data.sparse_a_matrix.todense()
+                bundle.dy_data.dense_b_vector = bundle.dy_data.sparse_b_vector.todense().transpose()
+
+            if disc_dyn is False:
+                result = raw_sim_one(start, max_steps, bundle.dy_data, bundle.settings, include_step_zero=True)
+            else:
+                result = raw_sim_one_disc(start, max_steps, 1, bundle.dy_data)
+            sim.extend(result)
+            start = result[len(result)-1]
+        return sim
+
 
 def compute_longest_subseq(ce_vector):
     indices = [0, 0]

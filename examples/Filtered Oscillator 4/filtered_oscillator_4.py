@@ -110,7 +110,8 @@ def define_ha(settings, usafe_r):
     usafe_set_constraint_list = []
 
     if usafe_r is None:
-        usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, -1], -0.2))
+        usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0, 0, 0, 0], -0.4))
+        # usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, -1], -0.2))
         # usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, 0, 0, 1], 0.3))
         # usafe_set_constraint_list.append(LinearConstraint([0, -1, 0, 0, 0, 0], 0.3))
     else:
@@ -138,8 +139,8 @@ def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
     plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
-    plot_settings.xdim = 1
-    plot_settings.ydim = 5
+    plot_settings.xdim = 0
+    plot_settings.ydim = 1
 
     s = HylaaSettings(step=0.02, max_time=2.0, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
@@ -209,9 +210,9 @@ if __name__ == '__main__':
     pv_object = run_hylaa(settings, init_r, None)
 
     # longest_ce = pv_object.compute_longest_ce()
-    # depth_direction = np.identity(len(init_r.dims))
-    # deepest_ce = pv_object.compute_deepest_ce(depth_direction[5])
-    # robust_ce = pv_object.compute_robust_ce_new()
+    depth_direction = np.identity(len(init_r.dims))
+    deepest_ce = pv_object.compute_deepest_ce(depth_direction[0])
+    # robust_ce = pv_object.compute_robust_ce()
     # pv_object.compute_milp_counterexample('Filtered')
     # z3_counter_examples = pv_object.compute_counter_examples_using_z3(2)
     Timers.print_stats()

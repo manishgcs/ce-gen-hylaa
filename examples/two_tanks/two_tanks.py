@@ -135,15 +135,15 @@ if __name__ == '__main__':
 
     # usafe_r = HyperRectangle([(0.5, 1.0), (-0.2, 0.1)])  # Small orig
     # usafe_r = HyperRectangle([(0.5, 0.7), (-0.2, 0.1)]) #Small checking in MILP
-    usafe_r = HyperRectangle([(0, 1.1), (-0.3, 0.3)])  # Medium
-    # usafe_r = HyperRectangle([(0, 1.9), (-0.3, 0.7)])  # Large:
+    # usafe_r = HyperRectangle([(0, 1.1), (-0.3, 0.3)])  # Medium
+    usafe_r = HyperRectangle([(0, 1.9), (-0.3, 0.7)])  # Large
 
     pv_object = run_hylaa(settings, init_r, usafe_r)
     # longest_ce = pv_object.compute_longest_ce()
     # depth_direction = np.identity(len(init_r.dims))
     # deepest_ce = pv_object.compute_deepest_ce(depth_direction[0])
-    # robust_ce = pv_object.compute_robust_ce_new()
-    pv_object.compute_milp_counterexample('Tanks')
-    pv_object.compute_z3_counterexamples()
+    robust_ce = pv_object.compute_robust_ce()
+    # pv_object.compute_milp_counterexample('Tanks')
+    # pv_object.compute_z3_counterexamples()
     # z3_counter_examples = pv_object.compute_counter_examples_using_z3(2)
     Timers.print_stats()

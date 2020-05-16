@@ -21,13 +21,13 @@ def define_ha(settings, usafe_r=None):
     ha.variables = ["x", "v"]
 
     extension = ha.new_mode('extension')
-    extension.a_matrix = np.array([[0.0, 1.0], [-100.0, -4.0]], dtype=float)
-    extension.c_vector = np.array([0.0, -9.81], dtype=float)
+    extension.a_matrix = np.array([[0.9951, 0.0098], [-0.9786, 0.9559]], dtype=float)
+    extension.c_vector = np.array([-0.0005, -0.0960], dtype=float)
     extension.inv_list.append(LinearConstraint([1.0, 0.0], 0))  # x <= 0
 
     freefall = ha.new_mode('freefall')
-    freefall.a_matrix = np.array([[0.0, 1.0], [0.0, 0.0]], dtype=float)
-    freefall.c_vector = np.array([0.0, -9.81], dtype=float)
+    freefall.a_matrix = np.array([[1.0, 0.01], [0.0, 1.0]], dtype=float)
+    freefall.c_vector = np.array([-0.0005, -0.0981], dtype=float)
     freefall.inv_list.append(LinearConstraint([-1.0, 0.0], 0.0))  # 0 <= x
     freefall.inv_list.append(LinearConstraint([1.0, 0.0], 1.0))  # x <= 1
 
@@ -72,7 +72,7 @@ def define_settings():
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    settings = HylaaSettings(step=0.01, max_time=2.0, disc_dyn=False, plot_settings=plot_settings)
+    settings = HylaaSettings(step=0.01, max_time=2.0, disc_dyn=True, plot_settings=plot_settings)
     settings.stop_when_error_reachable = False
     
     return settings
@@ -156,39 +156,4 @@ if __name__ == '__main__':
     # depth_direction = np.identity(len(init_r.dims))
     # deepest_ce = pv_object.compute_deepest_ce(depth_direction[1])
 
-    step_size = 0.02
-    a_matrices = []
-    c_vectors = []
-    a_matrix = np.array([[0.0, 1.0], [-100.0, -4.0]], dtype=float)
-    c_vector = np.array([0.0, -9.81], dtype=float)
-    a_matrices.append(a_matrix)
-    c_vectors.append(c_vector)
-    a_matrix = np.array([[0.0, 1.0], [0.0, 0.0]], dtype=float)
-    c_vector = np.array([0.0, -9.81], dtype=float)
-    a_matrices.append(a_matrix)
-    c_vectors.append(c_vector)
-    max_steps = []
-    max_steps.append(0.2/step_size)
-    max_steps.append(0.2/step_size)
-
-    longest_simulation = compute_simulation(longest_ce, a_matrices, c_vectors, max_steps, step_size, False)
-
-    sim_t = np.array(longest_simulation).T
-    plt.plot(sim_t[0], sim_t[1], 'b', linestyle='--')
-    plt.show()
-
     Timers.print_stats()
-
-    # psList = [1, 2, 3, 4, 5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-    # psSet = set()
-    # for element in psList:
-    #    e_set = set([element])
-    #    print ("Final Set: {}".format(e_set))
-    #    psSet.add(tuple(e_set))
-    #    if psSet.issubset(tuple(e_set)):
-    #        print ("This is a subset")
-
-    #    print ("Final Set: {}".format(psSet))
-    # pv_object.list_powerset(psList)
-    # pp(set(pv_object.powerset(psList)))
-    # pv_object.powerset(psList)

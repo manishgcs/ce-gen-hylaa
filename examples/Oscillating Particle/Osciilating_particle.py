@@ -31,8 +31,10 @@ def define_ha(settings, usafe_r):
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-            usafe_set_constraint_list.append(LinearConstraint([1, 0, 0], 0.50))
-            usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0], -0.25))
+        # usafe_set_constraint_list.append(LinearConstraint([1, 0, 0], 0.50))
+        # usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0], -0.25))
+        usafe_set_constraint_list.append(LinearConstraint([1, 0, 0], 0.8))
+        usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0], -0.2))
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
         for constraint in usafe_star.constraint_list:
@@ -56,7 +58,7 @@ def define_init_states(ha, init_r):
 def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
-    plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
+    plot_settings.plot_mode = PlotSettings.PLOT_MATLAB
     plot_settings.xdim = 0
     plot_settings.ydim = 2
 
@@ -110,9 +112,11 @@ if __name__ == '__main__':
     pv_object = run_hylaa(settings, init_r, None)
 
     pv_object.compute_z3_counterexamples()
-    pv_object.compute_milp_counterexample('Particle')
+    pv_object.compute_milp_counterexamples('Particle')
 
     # milp_ce = np.array([-0.0932466, 0.819339, 0.9])
     # smt_ce = np.array([0.0384758974, 0.8877238855, 0.9])
-    # compute_simulation_mt(smt_ce, milp_ce)
+    smt_ce = np.array([-0.033405184, 0.9732033863, 0.9])
+    milp_ce = np.array([-0.0465493, 0.986873, 0.9])
+    compute_simulation_mt(smt_ce, milp_ce)
     Timers.print_stats()

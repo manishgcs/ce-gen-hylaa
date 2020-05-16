@@ -13,7 +13,7 @@ from hylaa.util import Freezable
 class HylaaSettings(Freezable):
     'Settings for the computation'
 
-    def __init__(self, step, max_time, plot_settings=None):
+    def __init__(self, step, max_time, disc_dyn, plot_settings=None):
         if plot_settings is None:
             plot_settings = PlotSettings()
 
@@ -24,27 +24,28 @@ class HylaaSettings(Freezable):
 
         self.plot = plot_settings
 
-        self.aggregation = False # perform sucessor aggregation
-        self.deaggregation = True # perform trace-guided deaggregation
+        self.aggregation = False  # perform sucessor aggregation
+        self.deaggregation = True  # perform trace-guided deaggregation
 
-        self.add_guard_during_aggregation = True # add guard constraints during aggregation
-        self.add_box_during_aggregation = True # add box constraints during aggregation
+        self.add_guard_during_aggregation = True  # add guard constraints during aggregation
+        self.add_box_during_aggregation = True  # add box constraints during aggregation
         # self.trim_redundant_inv_constraints = True # perform redundant invariant trimming
-        self.process_urgent_guards = False # should urgent transition (where 0 time elapses in a mode) be allowed?
-        self.stop_when_error_reachable = True # should we stop computing immediately when an error mode is reached?
+        self.process_urgent_guards = False  # should urgent transition (where 0 time elapses in a mode) be allowed?
+        self.stop_when_error_reachable = True  # should we stop computing immediately when an error mode is reached?
 
-        self.print_output = True # print status and waiting list information to stdout
-        self.skip_step_times = False # print the times at each step
+        self.print_output = True  # print status and waiting list information to stdout
+        self.skip_step_times = False  # print the times at each step
 
-        self.opt_decompose_lp = True # use the Minkowski sum decomposition optimization (for systems with inputs)
-        self.opt_warm_start_lp = True # reuse the LP instances between guard checks (warm-start LP)
+        self.opt_decompose_lp = True  # use the Minkowski sum decomposition optimization (for systems with inputs)
+        self.opt_warm_start_lp = True  # reuse the LP instances between guard checks (warm-start LP)
 
-        self.counter_example_filename = "counterexample.py" # the counter-example filename to create on errors:
+        self.counter_example_filename = "counterexample.py"  # the counter-example filename to create on errors:
         # "counterexample.py" #goyalm
-        self.usafe_stars_filename = "usafe_stars.csv"
-        if os.path.exists(self.usafe_stars_filename):
-            os.remove(self.usafe_stars_filename)
+        # self.usafe_stars_filename = "usafe_stars.csv"
+        # if os.path.exists(self.usafe_stars_filename):
+        #    os.remove(self.usafe_stars_filename)
         self.simulation = SimulationSettings(step)
+        self.discrete_dyn = disc_dyn
 
         self.freeze_attrs()
 
@@ -74,43 +75,43 @@ class SimulationSettings(Freezable):
 class PlotSettings(Freezable):
     'plot settings container'
 
-    PLOT_NONE = 0 # don't plot (for performance measurement)
-    PLOT_FULL = 1 # plot the computation video live
-    PLOT_INTERACTIVE = 2 # step-by-step live plotting with buttons
-    PLOT_IMAGE = 3 # save the image plot to a file
-    PLOT_VIDEO = 4 # save animation to a video file
-    PLOT_MATLAB = 5 # create a matlab script which visualizes the reachable region
+    PLOT_NONE = 0  # don't plot (for performance measurement)
+    PLOT_FULL = 1  # plot the computation video live
+    PLOT_INTERACTIVE = 2  # step-by-step live plotting with buttons
+    PLOT_IMAGE = 3  # save the image plot to a file
+    PLOT_VIDEO = 4  # save animation to a video file
+    PLOT_MATLAB = 5  # create a matlab script which visualizes the reachable region
 
     def __init__(self):
         self.plot_mode = PlotSettings.PLOT_FULL
 
-        self.xdim = 0 # plotting x dimendion index
-        self.ydim = 1 # plotting y dimension index
+        self.xdim = 0  # plotting x dimendion index
+        self.ydim = 1  # plotting y dimension index
 
-        self.plot_size = (12, 8) # inches
-        self.label = LabelSettings() # plot title, axis labels, font sizes, ect.
+        self.plot_size = (12, 8)  # inches
+        self.label = LabelSettings()  # plot title, axis labels, font sizes, ect.
 
-        self.num_angles = 512 # how many evenly-spaced angles to put into plot_vecs
+        self.num_angles = 1024  # how many evenly-spaced angles to put into plot_vecs
 
-        self.extra_lines = None # extra lines to draw on the plot. list of lists of x,y pairs
-        self.min_frame_time = 0.025 # max 40 fps. This allows multiple frames to be drawn at once if they're fast.
+        self.extra_lines = None  # extra lines to draw on the plot. list of lists of x,y pairs
+        self.min_frame_time = 0.025  # max 40 fps. This allows multiple frames to be drawn at once if they're fast.
 
-        self.extend_plot_range_ratio = 0.1 # extend plot axis range 10% at a time
-        self.anim_delay_interval = 0 # milliseconds, extra delay between frames
+        self.extend_plot_range_ratio = 0.1  # extend plot axis range 10% at a time
+        self.anim_delay_interval = 0  # milliseconds, extra delay between frames
 
-        self.filename = None # used with PLOT_VIDEO AND PLOT_IMAGE
+        self.filename = None  # used with PLOT_VIDEO AND PLOT_IMAGE
 
-        self.video = None # instance of VideoSettings
+        self.video = None  # instance of VideoSettings
 
         self.grid = True
         self.plot_traces = True
-        self.max_shown_polys = 512 # thin out the reachable set if we go over this number of polys (optimization)
-        self.draw_stride = 1 # draw every 2nd poly, 4th, ect.
+        self.max_shown_polys = 1024  # thin out the reachable set if we go over this number of polys (optimization)
+        self.draw_stride = 1  # draw every 2nd poly, 4th, ect.
 
         # these are useful for testing / debugging
-        self.skip_frames = 0 # number of frames to process before we start drawing
-        self.skip_show_gui = False # should we skip showing the graphical interface
-        self.print_lp_at_each_step = False # should we print the LP being plotted at each step?
+        self.skip_frames = 0  # number of frames to process before we start drawing
+        self.skip_show_gui = False  # should we skip showing the graphical interface
+        self.print_lp_at_each_step = False  # should we print the LP being plotted at each step?
 
         self.freeze_attrs()
 
@@ -120,8 +121,8 @@ class PlotSettings(Freezable):
         self.plot_mode = PlotSettings.PLOT_VIDEO
 
         # turn off artificial delays
-        self.anim_delay_interval = 0 # no extra delay between frames
-        self.min_frame_time = 0 # draw every frame
+        self.anim_delay_interval = 0  # no extra delay between frames
+        self.min_frame_time = 0  # draw every frame
 
         self.filename = filename
 
@@ -143,8 +144,8 @@ class VideoSettings(Freezable):
 
     def __init__(self):
         self.codec = 'libx264'
-        self.frames = None # number of frames in the video, matplotlib maxes out at 100 frame if not set
-        self.fps = 20 # number of frames per second
+        self.frames = None  # number of frames in the video, matplotlib maxes out at 100 frame if not set
+        self.fps = 20  # number of frames per second
 
         self.freeze_attrs()
 
@@ -160,7 +161,7 @@ class LabelSettings(Freezable):
         self.title_size = 32
         self.label_size = 24
         self.tick_label_size = 18
-        self.axes_limits = None # fixed axes limits; a 4-tuple (xmin, xmax, ymin, ymax) or None for auto
+        self.axes_limits = None  # fixed axes limits; a 4-tuple (xmin, xmax, ymin, ymax) or None for auto
 
         self.freeze_attrs()
 

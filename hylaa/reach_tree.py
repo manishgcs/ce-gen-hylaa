@@ -23,7 +23,7 @@ class ReachTreeNode(object):
     def __init__(self, state, unsafe):
 
         self.state = state
-        self.cont_transition = None
+        self.cont_transition = None   # There is at most one continuos successor
         self.disc_transitions = []
         self.error = unsafe
 
@@ -50,7 +50,7 @@ class ReachTree(object):
 
     def get_node(self, state, cont_or_disc):
 
-        if cont_or_disc == 0:
+        if cont_or_disc == 0:  # Continuous
             if len(self.cont_leaf_nodes) > 0:
                 for index in range(len(self.cont_leaf_nodes)):
                     node = self.cont_leaf_nodes[index]
@@ -77,7 +77,7 @@ class ReachTree(object):
     def add_node(self, state, cont_or_disc, unsafe=False):
 
         node = ReachTreeNode(state, unsafe)
-        if cont_or_disc == 0:
+        if cont_or_disc == 0:  # 0 means continuous successor
             self.cont_leaf_nodes.append(node)
             # print "Continuous node: '{}' in location '{}'".format(state.total_steps, state.mode.name)
         elif cont_or_disc == 1:

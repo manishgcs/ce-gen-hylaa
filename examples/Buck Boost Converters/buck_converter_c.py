@@ -119,10 +119,10 @@ def define_ha(settings, usafe_r=None):
     usafe_set_constraint_list = []
     if usafe_r is None:
         # usafe_set_constraint_list.append(LinearConstraint([0.0, -1.0, 0.0, 0.0], -3.80))  # vc > 3.8
-        usafe_set_constraint_list.append(LinearConstraint([0.0, -1.0, 0.0, 0.0], -1.2))  # vc > 1.2
-        usafe_set_constraint_list.append(LinearConstraint([0.0, 1.0, 0.0, 0.0], 6.80))  # vc < 6.8
+        # usafe_set_constraint_list.append(LinearConstraint([0.0, -1.0, 0.0, 0.0], -1.2))  # vc > 1.2
+        # usafe_set_constraint_list.append(LinearConstraint([0.0, 1.0, 0.0, 0.0], 6.80))  # vc < 6.8
         usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0, 0.0, 0.0], -6.0))  # il > 6
-        usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0], 8.0))  # il < 8
+        # usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0], 8.0))  # il < 8
         # usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0, 0.0, 0.0], -9.05))
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -151,7 +151,7 @@ def define_init_states(ha, init_r):
 def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
-    plot_settings.plot_mode = PlotSettings.PLOT_MATLAB
+    plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
@@ -250,10 +250,12 @@ if __name__ == '__main__':
     # depth_direction = np.identity(len(init_r.dims))
     # deepest_ce = pv_object.compute_deepest_ce(depth_direction[1])
 
-    # pv_object.compute_milp_counterexamples('Buck')
+    pv_object.compute_milp_counterexamples('Buck')
     pv_object.compute_z3_counterexamples()
     Timers.print_stats()
     # milp_ce = np.array([0.0539174, 0.317914, 0, 0])
     # z3_ce = np.array([0.4254412992, 0.4929463894, 0, 0])
-    # compute_simulations_mt(milp_ce, z3_ce)
+    z3_ce = np.array([0.689202379, 0, 0, 0])
+    milp_ce = np.array([1, 0, 0, 0])
+    compute_simulations_mt(milp_ce, z3_ce)
 

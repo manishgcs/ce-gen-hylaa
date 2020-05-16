@@ -28,8 +28,8 @@ class HylaaEngine(object):
         assert isinstance(ha, LinearHybridAutomaton)
 
         if not openblas.has_openblas():
-            print ("Performance warning: OpenBLAS not detected. Matrix operations may be slower than necessary.")
-            print ("Is numpy linked with OpenBLAS? (hylaa.operblas.has_openblas() returned False)")
+            print("Performance warning: OpenBLAS not detected. Matrix operations may be slower than necessary.")
+            print("Is numpy linked with OpenBLAS? (hylaa.operblas.has_openblas() returned False)")
 
         if hylaa_settings.simulation.threads is not None:
             openblas.set_num_threads(hylaa_settings.simulation.threads)
@@ -53,6 +53,7 @@ class HylaaEngine(object):
         self.cur_step_in_mode = None  # how much dwell time in current continuous post
         self.max_steps_remaining = None  # bound on num steps left in current mode ; assigned on pop
         self.cur_sim_bundle = None  # set on pop
+        self.discrete_dyn = hylaa_settings.discrete_dyn
 
         self.reached_error = False
         self.result = None  # a HylaaResult... assigned on run()
@@ -115,7 +116,7 @@ class HylaaEngine(object):
                 #    return
 
                 discrete_poststate_star = state.clone()
-                discrete_poststate_star.fast_forward_steps = 0 # reset fast forward on transitions
+                discrete_poststate_star.fast_forward_steps = 0  # reset fast forward on transitions
                 basis_center = state.vector_to_star_basis(state.center)
 
                 discrete_poststate_star.parent = DiscretePostParent(state.mode, discrete_prestate_star,
@@ -183,7 +184,7 @@ class HylaaEngine(object):
 
         elapsed_aggregated_steps = steps_in_cur_star - star.total_steps - 1
 
-        if elapsed_aggregated_steps < 0: # happens on urgent transitions
+        if elapsed_aggregated_steps < 0:  # happens on urgent transitions
             elapsed_aggregated_steps = 0
 
         mode = star.parent.mode
@@ -255,7 +256,7 @@ class HylaaEngine(object):
     def do_step_pop(self, output):
         'do a step where we pop from the waiting list'
 
-        self.plotman.state_popped() # reset certain per-mode plot variables
+        self.plotman.state_popped()  # reset certain per-mode plot variables
 
         self.cur_step_in_mode = 0
 
@@ -265,7 +266,7 @@ class HylaaEngine(object):
         parent_star = self.waiting_list.pop()
 
         if output:
-            print ("Removed state in mode '{}' at time {:.2f}; fast_forward_steps = {}".format(
+            print("Removed state in mode '{}' at time {:.2f}; fast_forward_steps = {}".format(
                 parent_star.mode.name, parent_star.total_steps * self.settings.step, parent_star.fast_forward_steps))
 
         self.max_steps_remaining = self.settings.num_steps - parent_star.total_steps + parent_star.fast_forward_steps
@@ -281,9 +282,9 @@ class HylaaEngine(object):
 
             if self.cur_state is None:
                 if output:
-                    print ("After urgent checking guards, state was refined away.")
+                    print("After urgent checking guards, state was refined away.")
             elif output:
-                print ("Doing continuous post in mode '{}': ".format(self.cur_state.mode.name))
+                print("Doing continuous post in mode '{}': ".format(self.cur_state.mode.name))
 
         if self.cur_state is not None and state.mode.is_error:
             self.cur_state = None
@@ -301,7 +302,6 @@ class HylaaEngine(object):
         # advance current state by one time step
         state = self.cur_state
 
-        current_node = None
         if self.cur_step_in_mode == 0:
             current_node = self.reach_tree.get_node(state, 1)
         else:
@@ -313,12 +313,27 @@ class HylaaEngine(object):
             sim_bundle = self.cur_sim_bundle
 
             if self.settings.print_output and not self.settings.skip_step_times:
-                print ("Step: {} / {} ({})".format(self.cur_step_in_mode + 1, self.settings.num_steps,
-                                                  self.settings.step * (self.cur_step_in_mode)))
+                print("Step: {} / {} ({})".format(self.cur_step_in_mode + 1, self.settings.num_steps,
+                                                  self.settings.step * self.cur_step_in_mode))
 
             sim_step = self.cur_step_in_mode + 1 + state.fast_forward_steps
 
-            new_basis_matrix, new_center = sim_bundle.get_vecs_origin_at_step(sim_step, self.max_steps_remaining)
+            new_basis_matrix, new_center = sim_bundle.get_vecs_origin_at_step(sim_step, self.max_steps_remaining, self.discrete_dyn)
+
+            # if False:
+            #     if self.discrete_dyn is True:
+            #         f_name = 'basis_center_disc'
+            #     else:
+            #         f_name = 'basis_center_cont'
+            #
+            #     # if path.exists(f_name):
+            #     #    os.remove(f_name)
+            #     vals_f = open(f_name, "a")
+            #     vals_f.write(str(new_basis_matrix))
+            #     vals_f.write("\n")
+            #     vals_f.write(str(new_center))
+            #     vals_f.write("\n")
+            #     vals_f.close()
 
             state.update_from_sim(new_basis_matrix, new_center)
 
@@ -336,7 +351,7 @@ class HylaaEngine(object):
             # refinement may occur while checking guards, which sets cur_state to None
             if self.cur_state is None:
                 if output:
-                    print ("After checking guards, state was refined away.")
+                    print("After checking guards, state was refined away.")
             else:
                 is_still_feasible, inv_vio_star_list = self.cur_state.trim_to_invariant()
 
@@ -354,7 +369,7 @@ class HylaaEngine(object):
     def do_step(self):
         'do a single step of the computation'
 
-        skipped_plot = False # if we skip the plot, do multiple steps
+        skipped_plot = False  # if we skip the plot, do multiple steps
 
         while True:
             output = self.settings.print_output
@@ -365,21 +380,23 @@ class HylaaEngine(object):
             else:
                 try:
                     self.do_step_continuous_post(output)
-                except FoundErrorTrajectory: # this gets raised if an error mode is reachable and we should quit early
+                except FoundErrorTrajectory:  # this gets raised if an error mode is reachable and we should quit early
                     pass
 
             if self.cur_state is not None:
                 skipped_plot = self.plotman.plot_current_star(self.cur_state)
 
-            if self.settings.plot.plot_mode == PlotSettings.PLOT_NONE or \
-                                    not skipped_plot or self.is_finished():
+            if self.settings.plot.plot_mode == PlotSettings.PLOT_NONE or not skipped_plot or self.is_finished():
                 break
 
         if self.is_finished() and self.settings.print_output:
+            result_f = open('./result.txt', 'a')
             if self.reached_error:
-                print ("Result: Error modes are reachable.\n")
+                print("Result: Error modes are reachable.\n")
+                result_f.write("Result: Error modes are reachable.\n")
             else:
-                print ("Result: Error modes are NOT reachable.\n")
+                print("Result: Error modes are NOT reachable.\n")
+                result_f.write("Result: Error modes are not reachable.\n")
 
     def run_to_completion(self):
         'run the computation until it finishes (without plotting)'
@@ -428,10 +445,10 @@ class HylaaEngine(object):
             self.plotman.compute_and_animate(self.do_step, self.is_finished)
         print("Waiting list '{}'".format((self.waiting_list.print_stats())))
 
-        error_stars = []
-        while not self.error_stars_list.is_empty():
-            error_star = self.error_stars_list.pop()
-            error_stars.append(error_star)
+        # error_stars = []
+        # while not self.error_stars_list.is_empty():
+        #     error_star = self.error_stars_list.pop()
+        #     error_stars.append(error_star)
 
         return self.reach_tree
 
@@ -472,21 +489,21 @@ class WaitingList(object):
 
         total = len(self.aggregated_mode_to_state) + len(self.deaggregated_list)
 
-        print ("Waiting list contains {} states ({} aggregated and {} deaggregated):".format(
+        print("Waiting list contains {} states ({} aggregated and {} deaggregated):".format(
             total, len(self.aggregated_mode_to_state), len(self.deaggregated_list)))
 
         counter = 1
 
         for star in self.deaggregated_list:
-            print (" {}. Deaggregated Successor in Mode '{}'".format(counter, star.mode.name))
+            print(" {}. Deaggregated Successor in Mode '{}'".format(counter, star.mode.name))
             counter += 1
 
         for mode, star in self.aggregated_mode_to_state.items():
             if isinstance(star.parent, AggregationParent):
-                print (" {}. Aggregated Sucessor in Mode '{}': {} stars".format(counter, mode, len(star.parent.stars)))
+                print(" {}. Aggregated Sucessor in Mode '{}': {} stars".format(counter, mode, len(star.parent.stars)))
             else:
                 # should be a DiscretePostParent
-                print (" {}. Aggregated Sucessor in Mode '{}': single star".format(counter, mode))
+                print(" {}. Aggregated Sucessor in Mode '{}': single star".format(counter, mode))
 
             counter += 1
 

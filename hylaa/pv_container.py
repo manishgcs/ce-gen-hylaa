@@ -7,6 +7,7 @@ from hylaa.glpk_interface import LpInstance
 from hylaa.hybrid_automaton import LinearConstraint
 from hylaa.starutil import InitParent, DiscretePostParent
 from hylaa.timerutil import Timers
+from hylaa.reach_regex_milp import ReachabilityInstance, Polytope, RegexInstance
 import subprocess
 import itertools
 import re
@@ -14,16 +15,23 @@ import time
 from itertools import combinations
 from numpy.linalg import inv
 from subprocess import Popen
+import sys
+sys.setrecursionlimit(2000)
 
 
 class CeObject(object):
-    def __init__(self, ce, ce_length, ce_depth, patch, start_index, end_index):
+    def __init__(self, ce=None, ce_length=0.0, lpi=None, ce_depth=0.0, patch=None, start_index=0, end_index=0):
         self.counterexample = ce
         self.ce_length = ce_length
         self.ce_depth = ce_depth
         self.patch = patch
         self.start_index = start_index
         self.end_index = end_index
+        self.usafe_lpi = lpi
+        self.switching_times = []  # Only for control synth
+
+    def getCounterexample(self):
+        return self.counterexample
 
 
 class PVObject(object):
@@ -51,6 +59,57 @@ class PVObject(object):
 
         return usafe_basis_predicates
 
+    def get_switching_times(self, path, lce_object):
+        intervals = []
+        interval_start = path[0].state.total_steps
+        interval_end = interval_start
+        for idx in range(1, len(path)):
+            if path[idx].state.total_steps == (interval_end + 1):
+                interval_end = path[idx].state.total_steps
+            else:
+                interval = [interval_start, interval_end]
+                intervals.append(interval)
+                interval_start = path[idx].state.total_steps
+                interval_end = interval_start
+
+        interval = [interval_start, interval_end]
+        intervals.append(interval)
+
+        switching_times = []
+        refine_interval_idx = -1
+        for idx in range(len(intervals)):
+            interval = intervals[idx]
+            if lce_object.start_index >= interval[0] and lce_object.end_index <= interval[1]:
+                refine_interval_idx = idx
+            else:
+                switching_times.append(interval[0])
+                switching_times.append(interval[1])
+
+        refine_interval = intervals[refine_interval_idx]
+        refine_interval_duration = refine_interval[1] - refine_interval[0] + 1
+        if refine_interval_duration == lce_object.ce_length:
+            switching_times.append(lce_object.start_index)
+            switching_times.append(lce_object.end_index)
+        elif refine_interval_duration > lce_object.ce_length:
+            if refine_interval[0] < lce_object.start_index:
+                switching_times.append(refine_interval[0])
+                switching_times.append(lce_object.start_index)
+                switching_times.append(lce_object.end_index)
+            elif refine_interval[0] == lce_object.start_index:
+                switching_times.append(lce_object.start_index)
+                switching_times.append(lce_object.end_index)
+            if refine_interval[1] > lce_object.end_index:
+                switching_times.append(refine_interval[1])
+
+        switching_times.sort()
+        for idx in range(len(switching_times)):
+            if idx == 0:
+                switching_times[idx] = switching_times[idx] - 2
+            else:
+                switching_times[idx] = switching_times[idx] - 1
+
+        return switching_times
+
     @staticmethod
     def convert_star_pred_in_standard_pred(error_star):
         usafe_std_predicates = []
@@ -71,15 +130,40 @@ class PVObject(object):
 
         return new_lc
 
+    def compute_usafe_interval(self, loc_idx):
+        start_node = self.reach_tree.nodes[0]
+        paths = []
+        current_path = []
+        self.explore_tree_for_error_stars(start_node, current_path, paths)
+
+        interval = [-1, -1]
+        if len(paths) == 0:
+            return interval
+        else:
+            assert len(paths) == 1
+            path = paths[0]
+            loc_name = 'loc'+str(loc_idx)
+            int_start = -1
+            for node in path:
+                if node.state.mode.name == loc_name and int_start == -1:
+                        interval[0] = node.state.total_steps
+                        int_start = 0
+                elif node.state.mode.name == loc_name and int_start == 0:
+                        interval[1] = node.state.total_steps
+                elif node.state.mode.name != loc_name and int_start == 0:
+                    break
+            return interval
+
     def compute_longest_ce_in_a_path(self, path):
         # longest_ce_lpi = None
         direction = np.ones(self.num_dims)
-        prev_time_step = path[0].state.total_steps -1
+        prev_time_step = path[0].state.total_steps - 1
         continuous_patches = []
         current_patch = []
         for node in path:
             if node.state.total_steps == prev_time_step+1:
                 current_patch.append(node)
+                # print(node.state.mode.name, node.state.total_steps)
             else:
                 continuous_patches.append(current_patch)
                 current_patch = [node]
@@ -110,7 +194,7 @@ class PVObject(object):
                         basis_centers.append(prev_node_state.parent.star.parent.prestar_basis_center)
                         prev_node_state = prev_node_state.parent.star.parent.prestar
 
-                # TOCHECK Reverse the basis_centers list here?
+                # TO CHECK Reverse the basis_centers list here?
 
                 prev_node_state = patch[idx_i].state
 
@@ -128,7 +212,7 @@ class PVObject(object):
                     for pred in self.init_star.constraint_list:
                         usafe_lpi.add_basis_constraint(pred.vector, pred.value)
 
-                    # TOCHECK is this a redundant step?
+                    # TO CHECK is this a redundant step?
                     # if isinstance(node.state.parent.star.parent, DiscretePostParent):
                     #    for pred in node.state.parent.star.constraint_list:
                     #        for basis_center in basis_centers[::-1]:
@@ -150,7 +234,8 @@ class PVObject(object):
                         break
 
                     if ce_object is None or current_ce_length >= ce_object.ce_length:
-                        ce_object = CeObject(current_ce, current_ce_length, 0, patch, idx_i, idx_j)
+                        ce_object = CeObject(current_ce, current_ce_length, usafe_lpi, 0, patch,
+                                             patch[idx_i].state.total_steps, patch[idx_j].state.total_steps)
                         # longest_ce_lpi = usafe_lpi
                         # print "This counterexample starts from index '{}' in location '{}'".format(
                         # patch[idx_i].state.total_steps, patch[idx_i].state.mode.name)
@@ -159,7 +244,7 @@ class PVObject(object):
 
         return ce_object
 
-    def compute_longest_ce(self, lpi_required=False):
+    def compute_longest_ce(self, control_synth=False):
         start_node = self.reach_tree.nodes[0]
         # Timers.tic('New implementation Longest counter-example-1')
         # basis_centers = []
@@ -168,29 +253,41 @@ class PVObject(object):
         # Timers.toc('New implementation Longest counter-example-1')
         paths = []
         current_path = []
-        Timers.tic('New implementation Longest counter-example-2 generation time')
+        Timers.tic('New implementation Longest counter-example generation time')
         self.explore_tree_for_error_stars(start_node, current_path, paths)
+
+        if len(paths) == 0:
+            print("The system is safe.")
+            lce_object = CeObject()
+            return lce_object
+
         # print "Number of paths is '{}'".format(len(paths))
         longest_ce = None
-        longest_ce_length = 0
+        lce_length = 0
+        lce_object = None
         # for node in paths[1]:
         #    print ("Loc: '{}' and time '{}'".format(node.state.mode.name, node.state.total_steps))
         for path in paths:
             ce_object = self.compute_longest_ce_in_a_path(path)
             print(" Paths {} {}\n".format(len(path), ce_object.ce_length))
             # print "Counterexample for this path is '{}' of length '{}'".format(ce, ce_length)
-            if ce_object.ce_length >= longest_ce_length:
-                longest_ce = ce_object.counterexample
-                longest_ce_length = ce_object.ce_length
-        # print(" length: {} idx_i: {} idx_j: {}".format(ce_object.ce_length, ce_object.start_index,
-        # ce_object.end_index))
+            if ce_object.ce_length >= lce_length:
+                # longest_ce = ce_object.counterexample
+                lce_length = ce_object.ce_length
+                lce_object = ce_object
 
-        Timers.toc('New implementation Longest counter-example-2 generation time')
-        if lpi_required is True:
-            return ce_object
-        else:
-            print("The longest counter-example is : '{}' with length '{}'".format(longest_ce, longest_ce_length))
-            return longest_ce
+        if control_synth is True:
+            assert len(paths) == 1
+            switching_times = self.get_switching_times(paths[0], lce_object)
+            print(switching_times)
+            lce_object.switching_times = switching_times
+
+        print("length: {} idx_i: {} idx_j: {}".format(lce_object.ce_length, lce_object.start_index, lce_object.end_index))
+
+        Timers.toc('New implementation Longest counter-example generation time')
+        print("The longest counter-example is : '{}' with length '{}'".format(lce_object.counterexample,
+                                                                              lce_object.ce_length))
+        return lce_object
 
     '''The method computes those paths containing only error stars in the reach tree'''
     '''We start with an initial node. Because this is a recursive routine, '''
@@ -211,22 +308,24 @@ class PVObject(object):
             return
         else:
             if node.cont_transition is not None:
-                path = []
-                for current_node in current_path:
-                    path.append(current_node)
+                path = current_path.copy()
+                # for current_node in current_path:
+                #     path.append(current_node)
                 current_add_path = add_path
                 self.explore_tree_for_error_stars(node.cont_transition.succ_node, path, paths, current_add_path)
             if len(node.disc_transitions) > 0 and node.disc_transitions[0].succ_node.cont_transition is not None:
-                path = []
-                for current_node in current_path:
-                    path.append(current_node)
-                current_add_path = False
+                # path = []
+                # for current_node in current_path:
+                #     path.append(current_node)
+                path = current_path.copy()
+                current_add_path = add_path  # TO CHECK (Control Synthesis) Earlier it was current_add_path = False.
                 self.explore_tree_for_error_stars(node.disc_transitions[0].succ_node.cont_transition.succ_node, path,
                                                   paths, current_add_path)
             elif len(node.disc_transitions) > 0 and node.disc_transitions[0].succ_node.cont_transition is None:
-                path = []
-                for current_node in current_path:
-                    path.append(current_node)
+                # path = []
+                # for current_node in current_path:
+                #     path.append(current_node)
+                path = current_path.copy()
                 current_add_path = add_path
                 self.explore_tree_for_error_stars(node.disc_transitions[0].succ_node, path, paths, current_add_path)
 
@@ -315,64 +414,7 @@ class PVObject(object):
         #    z3_preds_file.write('\tprint m\n')
         #    z3_preds_file.write('s.pop()\n')
 
-    def compute_z3_counterexamples(self):
-        start_node = self.reach_tree.nodes[0]
-        prev_node_state = start_node.state
-        current_path = []
-        paths = []
-        Timers.tic("Time taken by SMT")
-        self.explore_tree_for_error_stars(start_node, current_path, paths)
-        path_id = 0
-        print(len(paths))
-        for path in paths:
-            prev_node_state = start_node.state
-            print("No of nodes in the path is: '{}'".format(len(path)))
-            file_name = "../preds_files/z3_preds_" + str(path_id)
-            file_name += '.py'
-            with open(file_name, 'w') as z3_preds_file:
-                z3_preds_file.write('from z3 import *\n\n')
-                for dim in range(self.num_dims):
-                    x_i = 'x_' + str(dim + 1)
-                    z3_preds_file.write('{} = Real(\'{}\')\n'.format(x_i, x_i))
-
-                z3_preds_file.write('s = Optimize()\n')
-                z3_preds_file.write('set_option(rational_to_decimal=True)\n')
-                basis_centers = []
-                for node_id in range(len(path)):
-
-                    node = path[node_id]
-                    if prev_node_state.mode.name != node.state.mode.name:
-                        if isinstance(node.state.parent.star.parent, DiscretePostParent):
-                            basis_centers.append(node.state.parent.star.parent.prestar_basis_center)
-                            prev_node_state = node.state
-                    usafe_basis_preds = self.compute_usafe_set_pred_in_star_basis(node.state)
-                    for index in range(len(usafe_basis_preds)):
-                        pred = usafe_basis_preds[index]
-                        for basis_center in basis_centers[::-1]:
-                            pred = self.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
-                        usafe_basis_preds[index] = pred
-
-                    z3_constraints = self.convert_preds_into_z3_str(usafe_basis_preds)
-                    c_i = 'c_' + str(node_id + 1)
-                    z3_preds_file.write('{} = Bool(\'{}\')\n'.format(c_i, c_i))
-                    z3_preds_file.write('s.add({} == And({}))\n'.format(c_i, z3_constraints))
-                    z3_preds_file.write('s.add_soft({})\n'.format(c_i))
-                z3_preds_file.write('if s.check() == sat:\n')
-                z3_preds_file.write('\tm = s.model()\n')
-                z3_preds_file.write('\tprint(m)\n')
-                z3_preds_file.write('else:\n')
-                z3_preds_file.write('\tprint(\u0027No solution\u0027)')
-            z3_preds_file.close()
-            env = dict(environ)
-            args = ['python3', file_name]
-            p = Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-            for line in p.stdout.readlines():
-                print(line)
-            z3_preds_file.close()
-            path_id = path_id + 1
-        Timers.toc("Time taken by SMT")
-
-    def compute_counter_examples_using_z3(self, str_length):
+    def compute_z3_ces_for_regex(self, str_length):
         counter_examples = []
         start_node = self.reach_tree.nodes[0]
         current_path = []
@@ -431,7 +473,115 @@ class PVObject(object):
         Timers.toc("Time taken by z3 to find counterexamples for all strings of given length")
         return counter_examples
 
-    def compute_milp_counterexample(self, benchmark):
+    def compute_z3_counterexamples(self):
+        start_node = self.reach_tree.nodes[0]
+        # prev_node_state = start_node.state
+        current_path = []
+        paths = []
+        Timers.tic("Time taken by SMT")
+        self.explore_tree_for_error_stars(start_node, current_path, paths)
+        path_id = 0
+        print(len(paths))
+        for path in paths:
+            prev_node_state = start_node.state
+            print("No of nodes in the path is: '{}'".format(len(path)))
+            file_name = "../preds_files/z3_preds_" + str(path_id)
+            file_name += '.py'
+            with open(file_name, 'w') as z3_preds_file:
+                z3_preds_file.write('from z3 import *\n\n')
+                for dim in range(self.num_dims):
+                    x_i = 'x_' + str(dim + 1)
+                    z3_preds_file.write('{} = Real(\'{}\')\n'.format(x_i, x_i))
+
+                z3_preds_file.write('s = Optimize()\n')
+                z3_preds_file.write('set_option(rational_to_decimal=True)\n')
+                basis_centers = []
+                for node_id in range(len(path)):
+
+                    node = path[node_id]
+                    if prev_node_state.mode.name != node.state.mode.name:
+                        if isinstance(node.state.parent.star.parent, DiscretePostParent):
+                            basis_centers.append(node.state.parent.star.parent.prestar_basis_center)
+                            prev_node_state = node.state
+                    usafe_basis_preds = self.compute_usafe_set_pred_in_star_basis(node.state)
+                    for index in range(len(usafe_basis_preds)):
+                        pred = usafe_basis_preds[index]
+                        for basis_center in basis_centers[::-1]:
+                            pred = self.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
+                        usafe_basis_preds[index] = pred
+
+                    z3_constraints = self.convert_preds_into_z3_str(usafe_basis_preds)
+                    c_i = 'c_' + str(node_id + 1)
+                    z3_preds_file.write('{} = Bool(\'{}\')\n'.format(c_i, c_i))
+                    z3_preds_file.write('s.add({} == And({}))\n'.format(c_i, z3_constraints))
+                    z3_preds_file.write('s.add_soft({})\n'.format(c_i))
+                z3_preds_file.write('if s.check() == sat:\n')
+                z3_preds_file.write('\tm = s.model()\n')
+                z3_preds_file.write('\tprint(m)\n')
+                z3_preds_file.write('else:\n')
+                z3_preds_file.write('\tprint(\u0027No solution\u0027)')
+            z3_preds_file.close()
+            env = dict(environ)
+            args = ['python3', file_name]
+            p = Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+            for line in p.stdout.readlines():
+                print(line)
+            z3_preds_file.close()
+            path_id = path_id + 1
+        Timers.toc("Time taken by SMT")
+
+    def compute_milp_counterexamples_py(self, benchmark, regex=None):
+        start_node = self.reach_tree.nodes[0]
+        current_path = []
+        paths = []
+        Timers.tic("Time taken by MILP")
+        self.explore_tree_for_error_stars(start_node, current_path, paths)
+        path_id = 0
+        for path in paths:
+            prev_node_state = start_node.state
+            print("No of nodes in the path is: '{}'".format(len(path)))
+
+            milp_instance = ReachabilityInstance(benchmark, self.num_dims, len(path))
+            if regex is not None:
+                milp_instance = RegexInstance(benchmark, self.num_dims, len(path))
+
+            basis_centers = []
+            for node in path:
+
+                if prev_node_state.mode.name != node.state.mode.name:
+                    if isinstance(node.state.parent.star.parent, DiscretePostParent):
+                        basis_centers.append(node.state.parent.star.parent.prestar_basis_center)
+                        prev_node_state = node.state
+                usafe_basis_preds = self.compute_usafe_set_pred_in_star_basis(node.state)
+                for index in range(len(usafe_basis_preds)):
+                    pred = usafe_basis_preds[index]
+                    for basis_center in basis_centers[::-1]:
+                        pred = self.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
+                    usafe_basis_preds[index] = pred
+
+                no_of_constraints = len(usafe_basis_preds)
+                con_matrix = np.zeros((no_of_constraints, self.num_dims), dtype=float)
+                rhs = np.zeros(no_of_constraints, dtype=float)
+                for idx in range(len(usafe_basis_preds)):
+                    pred = usafe_basis_preds[idx]
+                    pred_list = pred.vector.tolist()
+                    for idy in range(len(pred_list)):
+                        if pred_list[idy] != 0:
+                            con_matrix[idx][idy] = pred_list[idy]
+                    rhs[idx] = pred.value
+                polytope = Polytope(no_of_constraints, con_matrix, rhs)
+
+                milp_instance.addPolytope(polytope)
+
+            if regex is None:
+                milp_instance.solve()
+            else:
+                milp_instance.solve(regex)
+
+            path_id = path_id + 1
+        Timers.toc("Time taken by MILP")
+
+    def compute_milp_counterexamples_cpp(self, benchmark):
         start_node = self.reach_tree.nodes[0]
         current_path = []
         paths = []
@@ -444,21 +594,6 @@ class PVObject(object):
             file_name = "../preds_files/milp_preds_" + str(path_id)
             with open(file_name, 'w') as lin_preds_file:
 
-                # lin_preds_file.write('Every set of constraints is represented as Ax <= b, where A is a n*m matrix,
-                # x is m*1 vector, and b is a n*1 vector,\n')
-                # lin_preds_file.write('where \'n\' is the number of constraints. This set of constraints determine
-                # the intersection of the actual symbolic\n')
-                # lin_preds_file.write('state and the unsafe region.\n\n')
-                # lin_preds_file.write('For a constraint-set, we provide the number of constraints followed by the
-                # actual constraints in subsequent rows.\n')
-                # lin_preds_file.write('Each constraint-row is designated as the number of non-zero co-efficients,
-                # (index, value) pair of each non-zero\n')
-                # lin_preds_file.write('co-efficient, and last real-valued number is the corresponding value in
-                # vector b.\n\n')
-                # lin_preds_file.write('The indices start from 1. For instance, a row \'1 2 1.0 7.0\' determines a
-                # constraint 0*x1 + 1*x2 <= 7.\n')
-                # lin_preds_file.write('Similarly, \'2 1 6.33 3 0.380 -0.621\' represents the constraint 6.33*x1 +
-                # 0*x2 + 0.380*x3 <= -0.621.\n\n\n')
                 lin_preds_file.write('{}\n'.format(self.num_dims))
                 lin_preds_file.write('{}\n'.format(len(path)))
                 basis_centers = []
@@ -489,6 +624,9 @@ class PVObject(object):
                         lin_preds_file.write('{} {}\n'.format(no_of_vars_in_pred, pred_str))
 
             env = dict(environ)
+            # /home/manish/gurobi810/linux64/examples/build
+            # g++ -m64 -g -o ../c++/reach_regx/reach  ../c++/reach_regx/instance.cpp ../c++/reach_regx/main.cpp
+            # -I../../include/ -I../c++/reach_regx -L../../lib/ -lgurobi_c++ -lgurobi81 -lm
             env['LD_LIBRARY_PATH'] = '/home/manishg/Research/gurobi810/linux64/lib'
             args = ['/home/manishg/Research/gurobi810/linux64/examples/c++/reach_opt/reach', benchmark, file_name]
             p = Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
@@ -631,6 +769,7 @@ class PVObject(object):
                     basis_matrix = np.identity(self.num_dims, dtype=float)
                     point = np.dot(basis_matrix, result)
                     current_depth = np.dot(direction, point)
+                    # print("Current depth {}".format(current_depth))
                     # print ("depth for the point {} at time {} in loc {} is : {}".format(point, node.state.total_steps,
                     # node.state.mode.name, current_depth))
                     if depth is None or current_depth >= depth:
@@ -643,7 +782,7 @@ class PVObject(object):
             if len(node.disc_transitions) > 0 and node.disc_transitions[0].succ_node.cont_transition is not None:
                 node_queue.append(node.disc_transitions[0].succ_node.cont_transition.succ_node)
 
-        print("deepest point is '{}' in location '{}' with depth '{}'".format(deepest_point, deepest_node.state.mode.name, depth))
+        print("deepest point is '{}' in location '{}' with depth '{}'".format(deepest_point, deepest_node.state.mode.name, np.dot(abs(direction), deepest_point)))
         basis_centers = []
         # basis_matrices = []
         prev_node_state = deepest_node.state
@@ -670,9 +809,11 @@ class PVObject(object):
         for basis_center in basis_centers[::-1]:
             error_star_state = error_star_state - basis_center
         deepest_ce = np.dot(self.init_star.basis_matrix.T, error_star_state)
-        print("The deepest ce is '{}' with depth '{}'".format(deepest_ce, depth))
+        ce_depth = float(np.dot(abs(direction), deepest_point))
+        ce_object = CeObject(ce=deepest_ce, ce_depth=ce_depth)
+        print("The deepest ce is '{}' with depth '{}'".format(deepest_ce, ce_depth))
         Timers.toc("Deepest counter-example generation time")
-        return deepest_ce
+        return ce_object
 
         # usafe_basis_preds = self.compute_usafe_set_pred_in_star_basis(deepest_node.state)
         # all_preds = []
@@ -698,57 +839,11 @@ class PVObject(object):
         #    print "The deepest ce is '{}' with depth '{}'".format(deepest_ce, depth)
         # return deepest_ce
 
-    '''Computes robust point in each error star'''
-    def compute_robust_ce_old(self):
-        start_node = self.reach_tree.nodes[0]
-        node_queue = [start_node]
-        robust_points = []
-        # robust_point = np.zeros(self.num_dims)
-        while len(node_queue) is not 0:
-
-            node = node_queue[0]
-            node_queue = node_queue[1:]
-
-            if node.error is True:
-                usafe_lpi = LpInstance(self.num_dims, self.num_dims)
-                usafe_lpi.update_basis_matrix(node.state.basis_matrix)
-                for pred in self.usafe_set_constraint_list:
-                    usafe_lpi.add_standard_constraint(pred.vector, pred.value)
-                for pred in node.state.constraint_list:
-                    usafe_lpi.add_basis_constraint(pred.vector, pred.value)
-
-                directions = np.identity(self.num_dims, dtype=float)
-                robust_point = np.zeros(self.num_dims)
-                for index in range(self.num_dims):
-                    direction = directions[index]
-                    result = np.zeros(self.num_dims)
-                    is_feasible = usafe_lpi.minimize(-1 * direction, result, error_if_infeasible=False)
-                    if is_feasible:
-                        usafe_set_basis_matrix = np.identity(self.num_dims, dtype=float)
-                        point1 = np.dot(usafe_set_basis_matrix, result)
-                    result = np.zeros(self.num_dims)
-                    is_feasible = usafe_lpi.minimize(direction, result, error_if_infeasible=False)
-                    if is_feasible:
-                        usafe_set_basis_matrix = np.identity(self.num_dims, dtype=float)
-                        point2 = np.dot(usafe_set_basis_matrix, result)
-                    # print ("Points for the direction {} are {} and {}".format(direction, point1, point2))
-                    current_point = (point1 + point2) / 2
-                    robust_point[index] = np.dot(current_point, direction)
-                print("Robust point is '{}' in location '{}'".format(robust_point, node.state.mode.name))
-                robust_points.append(robust_point)
-
-            if node.cont_transition is not None:
-                node_queue.append(node.cont_transition.succ_node)
-            if len(node.disc_transitions) > 0 and node.disc_transitions[0].succ_node.cont_transition is not None:
-                node_queue.append(node.disc_transitions[0].succ_node.cont_transition.succ_node)
-
-        return robust_points
-
     '''Computes robust point in each error star, map each of these points to a point in initial star
         and take the average of them.'''
-    def compute_robust_ce_new(self):
+    def compute_robust_ce_old(self):
         Timers.tic('Robust counter-example generation time')
-        ce_object = self.compute_longest_ce(True)
+        ce_object = self.compute_longest_ce()
         robust_points_in_initial_star = []
         patch = ce_object.patch[1:len(ce_object.patch)-1]
         for node in patch:
@@ -804,8 +899,8 @@ class PVObject(object):
         return robust_point
 
     def create_lpi(self, ce_object):
-        longest_usafe_ce_lpi = LpInstance(self.num_dims, self.num_dims)
-        longest_usafe_ce_lpi.update_basis_matrix(self.init_star.basis_matrix)
+        longest_ce_lpi = LpInstance(self.num_dims, self.num_dims)
+        longest_ce_lpi.update_basis_matrix(self.init_star.basis_matrix)
         prev_node_state = ce_object.patch[ce_object.start_index].state
         basis_centers = []
         while True:
@@ -825,17 +920,19 @@ class PVObject(object):
             for pred in usafe_basis_preds:
                 for basis_center in basis_centers[::-1]:
                     pred = self.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
-                longest_usafe_ce_lpi.add_basis_constraint(pred.vector, pred.value)
+                longest_ce_lpi.add_basis_constraint(pred.vector, pred.value)
 
         for pred in self.init_star.constraint_list:
-            longest_usafe_ce_lpi.add_basis_constraint(pred.vector, pred.value)
+            longest_ce_lpi.add_basis_constraint(pred.vector, pred.value)
 
-        return longest_usafe_ce_lpi
+        return longest_ce_lpi
 
-    '''Find a robust point in the initial set after computing the intersection of each error star'''
+    '''Find a robust point in the initial set after computing the intersection of all stars in longest ce'''
     def compute_robust_ce(self):
-        ce_object = self.compute_longest_ce(True)
-        longest_ce_lpi = self.create_lpi(ce_object)
+        Timers.tic('Robust counter-example generation time')
+        lce_object = self.compute_longest_ce()
+        longest_ce_lpi = lce_object.usafe_lpi
+        # longest_ce_lpi = self.create_lpi(lce_object)
         directions = np.identity(self.num_dims, dtype=float)
         robust_point = np.zeros(self.num_dims)
         for index in range(self.num_dims):
@@ -845,14 +942,17 @@ class PVObject(object):
             basis_matrix = self.init_star.basis_matrix
             if is_feasible:
                 point1 = np.dot(basis_matrix, result)
+                print("Depth {}".format(sum(direction*result)))
             result = np.zeros(self.num_dims)
             is_feasible = longest_ce_lpi.minimize(direction, result, error_if_infeasible=False)
             if is_feasible:
                 point2 = np.dot(basis_matrix, result)
+                print("Depth {}".format(sum(direction*result)))
             # print ("Points for the direction {} are {} and {}".format(direction, point1, point2))
             current_point = (point1 + point2) / 2
             robust_point[index] = np.dot(current_point, direction)
         print("Robust point is '{}'".format(robust_point))
+        Timers.toc('Robust counter-example generation time')
         return robust_point
 
     def check_path_feasibility(self, node, direction, basis_centers, constraints_list):
@@ -926,6 +1026,7 @@ class PVObject(object):
                 self.check_path_feasibility(node.disc_transitions[0].succ_node.cont_transition.succ_node, direction,
                                             current_basis_centers, current_constraints_list)
 
+    @staticmethod
     def if_member(self, subset, result_set):
         if len(result_set) is 0:
             return False
@@ -956,6 +1057,7 @@ class PVObject(object):
         # print ("Result is : {}".format(result))
         print("Total time {}".format(time.clock() - start_time))
 
+    @staticmethod
     def list_powerset(self, lst):
         start_time = time.clock()
         # the power set of the empty set has one element, the empty set
@@ -969,6 +1071,7 @@ class PVObject(object):
             # print result
         print("Time taken by power_set: {}".format(time.clock() - start_time))
 
+    @staticmethod
     def powerset(self, iterable):
         s = list(iterable)
         start_time = time.clock()

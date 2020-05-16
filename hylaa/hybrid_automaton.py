@@ -52,7 +52,7 @@ class HyperRectangle(object):
     'An n-dimensional box'
 
     def __init__(self, dims):
-        self.dims = dims # list of tuples
+        self.dims = dims  # list of tuples
 
         for d in range(len(dims)):
             low = dims[d][0]

@@ -25,10 +25,8 @@ def define_ha(settings, usafe_r):
 
     loc1 = ha.new_mode('loc1')
 
-    loc1.a_matrix = np.array([[-0.1, 1], [-1, -0.1]])
-    # loc1.a_matrix = np.array([[0, 1], [-1, 0]])
-    loc1.c_vector = np.array([2, 0], dtype=float)
-    # loc1.set_dynamics(a_matrix, c_vector)
+    loc1.a_matrix = np.array([[0.96065997, 0.1947354], [-0.1947354, 0.96065997]])
+    loc1.c_vector = np.array([0.39340481, -0.03933961], dtype=float)
     error = ha.new_mode('_error')
     error.is_error = True
 
@@ -68,7 +66,7 @@ def define_settings():
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    s = HylaaSettings(step=0.2, max_time=20.0, disc_dyn=False, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.2, max_time=20.0, disc_dyn=True, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
     
     return s
@@ -87,25 +85,6 @@ def run_hylaa(settings, init_r, usafe_r):
     return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
 
-def compute_simulation_mt(milp_ce, z3_ce):
-    a_matrix = np.array([[-0.1, 1], [-1, -0.1]])
-    c_vector = np.array([0, 0], dtype=float)
-    milp_ce_simulation = compute_simulation(milp_ce, a_matrix, c_vector, 0.2, 100)
-
-    z3_ce_simulation = compute_simulation(z3_ce, a_matrix, c_vector, 0.2, 100)
-
-    with open("simulation", 'w') as f:
-        f.write('milp_simulation = [')
-        for point in milp_ce_simulation:
-            f.write('{},{};\n'.format(str(point[0]), str(point[1])))
-        f.write(']')
-        f.write('\n**************************************\n')
-        f.write('z3_simulation = [')
-        for point in z3_ce_simulation:
-            f.write('{},{};\n'.format(point[0], str(point[1])))
-        f.write(']')
-
-
 if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(-6, -5), (0, 1)])
@@ -116,27 +95,3 @@ if __name__ == '__main__':
     # usafe_r = HyperRectangle([(-4, 2), (-1, 6)])  # Large
 
     pv_object = run_hylaa(settings, init_r, usafe_r)
-
-    # pv_object.compute_longest_ce()
-    # depth_direction = np.identity(len(init_r.dims))
-    # pv_object.compute_deepest_ce(depth_direction[1])
-    # robust_pt = pv_object.compute_robust_ce_new()
-
-    # pv_object.compute_counter_examples_using_z3(4)
-    # pv_object.compute_z3_counterexamples()
-    pv_object.compute_milp_counterexamples_py('Oscillator', "11111001111111111111111110")
-    # z3_ce = np.array([-5.1324054061, 0.8009245168])
-    # milp_ce = np.array([-5.28179, 0.76464])
-    # compute_simulation_mt(milp_ce, z3_ce)
-
-    # simulations = []
-    # for ce in z3_counter_examples:
-    # simulation = compute_simulation(z3_counter_example, a_matrix, c_vector, 0.2, 20/0.2)
-    # x, y = np.array(simulation).T
-    # plt.plot(x, y, 'r*')
-    # verts = usafe_star.verts()
-    # print(verts)
-    # x, y = np.array(verts).T
-    # plt.plot(x, y, 'r-', robust_pt[0], robust_pt[1], 'r.')
-    # plt.show()
-    Timers.print_stats()

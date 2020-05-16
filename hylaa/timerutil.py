@@ -87,17 +87,17 @@ class Timers(object):
             if timer.name in skip_timers:
                 continue
     
-            print ("{} Time ({} calls): {:.2f} sec ({:.1f}%)".format(
+            print("{} Time ({} calls): {:.2f} sec ({:.1f}%)".format(
                 timer.name.capitalize(), timer.num_calls, timer.total_secs, 100 * timer.total_secs / total))
 
         if Timers.timers.get('frame') is not None:
             frame = Timers.timers["frame"]
 
             overhead = total - frame.total_secs
-            print ("Matplotlib Overhead ({} frames): {:.2f} sec ({:.1f}%)".format(
+            print("Matplotlib Overhead ({} frames): {:.2f} sec ({:.1f}%)".format(
                 frame.num_calls, overhead, 100 * overhead / total))
 
-        print ("Total Time: {:.2f} sec".format(total))
+        print("Total Time: {:.2f} sec".format(total))
 
 
 

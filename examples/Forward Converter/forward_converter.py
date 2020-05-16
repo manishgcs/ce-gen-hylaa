@@ -148,8 +148,8 @@ def define_ha(settings, usafe_r):
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-        # usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, -1.0, 0.0, 0.0], -2.50)) # vc >= 2.5
-        usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, -1.0, 0.0, 0.0], -2.20))  # vc >= 2.2
+        usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, -1.0, 0.0, 0.0], -2.50)) # vc >= 2.5
+        # usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, -1.0, 0.0, 0.0], -2.20))  # vc >= 2.2
         # usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, -1.0, 0.0, 0.0], -2.00))  # vc >= 2.0
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -258,10 +258,10 @@ if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(0.0, 0.4), (0.0, 0.4), (0.0, 0.4), (0, 0), (0.0, 0.0)])
     pv_object = run_hylaa(settings, init_r, None)
-    longest_ce = pv_object.compute_longest_ce()
-    depth_direction = np.identity(len(init_r.dims))
-    deepest_ce = pv_object.compute_deepest_ce(depth_direction[2])
-    robust_ce = pv_object.compute_robust_ce_new()
-    compute_simulation_py(robust_ce, longest_ce)
+    # longest_ce = pv_object.compute_longest_ce()
+    # depth_direction = np.identity(len(init_r.dims))
+    # deepest_ce = pv_object.compute_deepest_ce(depth_direction[2])
+    robust_ce = pv_object.compute_robust_ce()
+    # compute_simulation_py(robust_ce, longest_ce)
     Timers.print_stats()
 
