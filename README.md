@@ -14,7 +14,7 @@ Some considerations: although we are confident in the underlying theoretical tec
 
 There are also expressiveness limitations with the current implementation. The current version of Hylaa can handle either time-varying inputs or hybrid dynamics, but not both at the same time (except when creating error modes for systems with inputs). Resets in discrete transitions are not yet implemented. Also, discrete transitions with hybrid dynamics may not always work, depending on subtle properties of the system (the tool will output a basis matrix error message if these conditions fail). We plan to add these features over time.
 
-This version also supports systems with discrete dynamics, with similar expressiveness limitations applicable as explained in previous paragraph. Additionally, the technique to generate variety of counterexamples has been implemented - the details are provided in one of the subsequent sections.
+This version supports **systems with discrete dynamics**, with similar expressiveness limitations applicable as explained in previous paragraph. Additionally, **the technique to generate variety of counterexamples** has been implemented - the details are provided in one of the subsequent sections.
 
 ### Setup ###
 
