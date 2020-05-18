@@ -30,7 +30,7 @@ class CeObject(object):
         self.usafe_lpi = lpi
         self.switching_times = []  # Only for control synth
 
-    def getCounterexample(self):
+    def get_counterexample(self):
         return self.counterexample
 
 
@@ -473,7 +473,7 @@ class PVObject(object):
         Timers.toc("Time taken by z3 to find counterexamples for all strings of given length")
         return counter_examples
 
-    def compute_z3_counterexamples(self):
+    def compute_z3_counterexample(self):
         start_node = self.reach_tree.nodes[0]
         # prev_node_state = start_node.state
         current_path = []
@@ -530,7 +530,7 @@ class PVObject(object):
             path_id = path_id + 1
         Timers.toc("Time taken by SMT")
 
-    def compute_milp_counterexamples_py(self, benchmark, regex=None):
+    def compute_milp_counterexample_py(self, benchmark, regex=None):
         start_node = self.reach_tree.nodes[0]
         current_path = []
         paths = []
@@ -581,7 +581,7 @@ class PVObject(object):
             path_id = path_id + 1
         Timers.toc("Time taken by MILP")
 
-    def compute_milp_counterexamples_cpp(self, benchmark):
+    def compute_milp_counterexample_cpp(self, benchmark):
         start_node = self.reach_tree.nodes[0]
         current_path = []
         paths = []
