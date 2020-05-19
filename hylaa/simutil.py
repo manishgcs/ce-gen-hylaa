@@ -225,6 +225,7 @@ class SimulationBundle(Freezable):
         self.freeze_attrs()
 
     def simulate_origin_disc(self, start, steps, cur_step):
+        Timers.tic("simulation")
         result = []
         prev_val = start
         for idx in range(cur_step, cur_step + steps, 1):
@@ -232,11 +233,14 @@ class SimulationBundle(Freezable):
             new_val = np.array(np.matmul(a_exp, self.dy_data.dense_b_vector).flatten().tolist()[0]) + np.array(prev_val)
             prev_val = new_val
             result.append(new_val)
+        Timers.toc("simulation")
         return result
         # result = raw_sim_one_disc(start, steps, cur_step, self.dy_data, origin)
         # return result
 
     def simulate_vecs_disc(self, start_list, steps, cur_step):
+        Timers.tic("simulation")
+        sim_start_time = time.time()
         result = []
         prev_val = start_list
         for idx in range(cur_step, cur_step+steps, 1):
@@ -248,6 +252,17 @@ class SimulationBundle(Freezable):
             result.append(single_step_result)
             prev_val = new_val
 
+        if self.settings.stdout:
+            SHARED_NEXT_PRINT.value = sim_start_time + self.settings.print_interval_secs
+            SHARED_COMPLETED_SIMS.value = 0
+
+            mb_per_step = np.dtype(float).itemsize * self.num_dims * self.num_dims / 1024.0 / 1024.0
+            print("Simulating {} steps (~{:.2f} GB in memory)...".format(steps, steps * mb_per_step / 1024.0))
+
+        if self.settings.stdout:
+            print("Total Simulation Time: {:.2f} secs".format(time.time() - sim_start_time))
+
+        Timers.toc("simulation")
         return result
 
     def simulate_origin(self, start, steps, include_step_zero=False):
@@ -422,7 +437,7 @@ class SimulationBundle(Freezable):
                 self.origin_sim = self.simulate_origin(start, num_new_steps)
             else:
                 self.origin_sim = self.simulate_origin_disc(start, num_new_steps, step)
-                print(step)
+                # print(step)
 
             # also advance vec_values
             start_list = self.vec_values[-1].copy()
@@ -574,7 +589,8 @@ def raw_sim_one_disc(start, steps, cur_step, dy_data):
     prev_affine_val = np.zeros(len(start))
     for idx in range(cur_step, cur_step + steps, 1):
         a_exp = mat_pow(dy_data.dense_a_matrix, idx - 1)
-        new_affine_val = np.array(np.matmul(a_exp, dy_data.dense_b_vector).flatten().tolist()[0]) + np.array(prev_affine_val)
+        new_affine_val = np.array(np.matmul(a_exp, dy_data.dense_b_vector).flatten().tolist()[0]) + np.array(
+                                                                                                    prev_affine_val)
         prev_affine_val = new_affine_val
         # abc = np.matmul(mat_pow(dy_data.dense_a_matrix, idx), np.array(start)).tolist()[0]
         new_state = np.matmul(mat_pow(dy_data.dense_a_matrix, idx), np.array(start)).tolist()[0] + prev_affine_val
