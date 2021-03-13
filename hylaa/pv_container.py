@@ -7,7 +7,8 @@ from hylaa.glpk_interface import LpInstance
 from hylaa.hybrid_automaton import LinearConstraint
 from hylaa.starutil import InitParent, DiscretePostParent
 from hylaa.timerutil import Timers
-from hylaa.reach_regex_milp import ReachabilityInstance, Polytope, RegexInstance
+from hylaa.reach_regex_milp import ReachabilityInstance, RegexInstance
+from hylaa.polytope import Polytope
 import subprocess
 import itertools
 import re
@@ -122,6 +123,8 @@ class PVObject(object):
         #    usafe_std_predicates.append(pred.clone())
         return usafe_std_predicates
 
+    ''' center changes/resets to 0 on every mode switch. '''
+    ''' a^T x' <= b - a^T c'''
     @staticmethod
     def convert_usafe_basis_pred_in_basis_center(usafe_basis_pred, basis_center):
         offset = np.dot(usafe_basis_pred.vector, basis_center)
@@ -569,6 +572,7 @@ class PVObject(object):
                         if pred_list[idy] != 0:
                             con_matrix[idx][idy] = pred_list[idy]
                     rhs[idx] = pred.value
+                # print(con_matrix)
                 polytope = Polytope(no_of_constraints, con_matrix, rhs)
 
                 milp_instance.addPolytope(polytope)
@@ -628,7 +632,7 @@ class PVObject(object):
             # g++ -m64 -g -o ../c++/reach_regx/reach  ../c++/reach_regx/instance.cpp ../c++/reach_regx/main.cpp
             # -I../../include/ -I../c++/reach_regx -L../../lib/ -lgurobi_c++ -lgurobi81 -lm
             env['LD_LIBRARY_PATH'] = '/home/manishg/Research/gurobi810/linux64/lib'
-            args = ['/home/manishg/Research/gurobi810/linux64/examples/c++/reach_opt/reach', benchmark, file_name]
+            args = ['/home/manishg/Research/gurobi903/linux64/examples/c++/reach_opt/reach', benchmark, file_name]
             p = Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
             for line in p.stdout.readlines():
                 # if line.find("Bounds:") != -1:
@@ -782,7 +786,9 @@ class PVObject(object):
             if len(node.disc_transitions) > 0 and node.disc_transitions[0].succ_node.cont_transition is not None:
                 node_queue.append(node.disc_transitions[0].succ_node.cont_transition.succ_node)
 
-        print("deepest point is '{}' in location '{}' with depth '{}'".format(deepest_point, deepest_node.state.mode.name, np.dot(abs(direction), deepest_point)))
+        print("deepest point is '{}' in location '{}' with depth '{}'".format(deepest_point,
+                                                                              deepest_node.state.mode.name,
+                                                                              np.dot(abs(direction), deepest_point)))
         basis_centers = []
         # basis_matrices = []
         prev_node_state = deepest_node.state

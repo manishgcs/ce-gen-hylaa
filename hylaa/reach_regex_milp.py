@@ -1,16 +1,7 @@
 import ast
 import numpy as np
+from hylaa.polytope import Polytope
 from gurobipy import *
-
-
-class Polytope:
-    def __init__(self, n_constraints, con_matrix, rhs):
-        self.n_constraints = n_constraints
-        self.con_matrix = con_matrix
-        self.rhs = rhs
-
-    def polytopePrint(self):
-        print("Print polytope with " + str(len(self.n_constraints)) + " constraints...")
 
 
 class RegexInstance:
@@ -180,7 +171,7 @@ class ReachabilityInstance:
         elif self.benchmark == "Oscillator":
             bigM = 10000.0
             lb = -100000.0
-            ub = 1.0
+            ub = 100.0
         elif self.benchmark == "Tanks":
             bigM = 100000.0
             lb = -1000000.0
