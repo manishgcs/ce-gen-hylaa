@@ -390,13 +390,13 @@ class HylaaEngine(object):
                 break
 
         if self.is_finished() and self.settings.print_output:
-            result_f = open('./result.txt', 'a')
+            # result_f = open('./result.txt', 'a')
             if self.reached_error:
                 print("Result: Error modes are reachable.\n")
-                result_f.write("Result: Error modes are reachable.\n")
+                # result_f.write("Result: Error modes are reachable.\n")
             else:
                 print("Result: Error modes are NOT reachable.\n")
-                result_f.write("Result: Error modes are not reachable.\n")
+                # result_f.write("Result: Error modes are not reachable.\n")
 
     def run_to_completion(self):
         'run the computation until it finishes (without plotting)'

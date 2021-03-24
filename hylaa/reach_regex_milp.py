@@ -60,13 +60,13 @@ class RegexInstance:
         model.update()
 
         z = []
-        for idx in range(self.n_timesteps):
+        for idx in range(len(reg_expr)):
             temp_var = model.addVar(lb=0.0, ub=1.0, obj=0.0, vtype=GRB.BINARY, name="z[" + str(idx) + "]")
             z.append(temp_var)
         model.update()
 
         z_local = []
-        for idx in range(self.n_timesteps):
+        for idx in range(len(reg_expr)):
             z_t = []
             polytope = self.polytopes[idx]
             for idy in range(polytope.n_constraints):
@@ -74,7 +74,7 @@ class RegexInstance:
                 z_t.append(temp_var)
             z_local.append(z_t)
 
-        for idx in range(self.n_timesteps):
+        for idx in range(len(reg_expr)):
             zexpr = LinExpr(0.0)
             polytope = self.polytopes[idx]
             for idy in range(polytope.n_constraints):
@@ -94,7 +94,7 @@ class RegexInstance:
                 model.addConstr(z[idx] <= 0)
 
         objective = LinExpr(0.0)
-        for idx in range(self.n_timesteps):
+        for idx in range(len(reg_expr)):
             objective += z[idx]
 
         model.setObjective(objective, GRB.MAXIMIZE)
@@ -102,7 +102,7 @@ class RegexInstance:
         model.setParam(GRB.Param.Threads, 1)
         model.setParam(GRB.Param.TimeLimit, 100.0)
 
-        model.write("regex_model.lp")
+        # model.write("regex_model.lp")
 
         model.optimize()
 
@@ -114,11 +114,11 @@ class RegexInstance:
         else:
             print("Bounds:\t" + str(int(model.objVal)) + "\t" + str(int(model.objBound)))
 
-        for idx in range(self.n_timesteps):
-            print("\t" + str(int(z[idx].getAttr(GRB.Attr.X))) + "\n")
+            for idx in range(len(reg_expr)):
+                print("\t" + str(int(z[idx].getAttr(GRB.Attr.X))) + "\t")
 
-        for idx in range(self.n_variables):
-            print("\t" + str(float(x[idx].getAttr(GRB.Attr.X))) + "\n")
+            for idx in range(self.n_variables):
+                print("\t" + str(float(x[idx].getAttr(GRB.Attr.X))) + "\t")
 
 
 class ReachabilityInstance:
@@ -155,7 +155,7 @@ class ReachabilityInstance:
                     coeff = float(con_data[2+idy*2])
                     con_matrix[idx][var-1] = coeff
                 rhs[idx] = float(con_data[len(con_data)-1])
-            polytope = Polytope(n_constraints. con_matrix, rhs)
+            polytope = Polytope(n_constraints, con_matrix, rhs)
             self.polytopes.append(polytope)
 
     def solve(self):
@@ -225,7 +225,7 @@ class ReachabilityInstance:
         model.setParam(GRB.Param.Threads, 1)
         model.setParam(GRB.Param.TimeLimit, 100.0)
 
-        model.write("reachability_model.lp")
+        # model.write("reachability_model.lp")
 
         model.optimize()
 
@@ -237,8 +237,8 @@ class ReachabilityInstance:
         else:
             print("Bounds:\t" + str(int(model.objVal)) + "\t" + str(int(model.objBound)))
 
-        for idx in range(self.n_timesteps):
-            print("\t" + str(int(z[idx].getAttr(GRB.Attr.X))) + "\n")
+            for idx in range(self.n_timesteps):
+                print("\t" + str(int(z[idx].getAttr(GRB.Attr.X))) + "\t")
 
-        for idx in range(self.n_variables):
-            print("\t" + str(float(x[idx].getAttr(GRB.Attr.X))) + "\n")
+            for idx in range(self.n_variables):
+                print("\t" + str(float(x[idx].getAttr(GRB.Attr.X))) + "\t")

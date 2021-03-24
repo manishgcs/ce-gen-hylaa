@@ -128,6 +128,7 @@ class FarkasSMT(FarkasObject):
                 for idy in range(n2_constraints):
                     z3_pred_str = 'Or(And(c_' + str(idx+1) + ' == False, ' + 'y_' + str(y_var_idx+1) + '== 0.0), '
                     z3_pred_str = z3_pred_str + 'And(c_' + str(idx+1) + ' == True, ' + 'y_' + str(y_var_idx+1) + ' > 0.0))'
+                    # z3_pred_str = 'Or(c_' + str(idx+1) + ' == True, ' + 'y_' + str(y_var_idx+1) + '== 0.0)'
                     z3_preds_file.write('s.add({})\n'.format(z3_pred_str))
                     y_var_idx = y_var_idx + 1
 
@@ -252,19 +253,21 @@ class FarkasSMT(FarkasObject):
             n2_constraints = n2_constraints_per_polytope[idx]
             for idy in range(n2_constraints):
                 s.add(Or(And(z[idx] == False, y[y_var_idx] == 0.0), And(z[idx] == True, y[y_var_idx] > 0.0)))
+                # s.add(Or(z[idx] == True, y[y_var_idx] == 0.0))
                 y_var_idx = y_var_idx + 1
-
-        s.check()
-        mdl = s.model()
 
         z_vals = []
         alpha_vals = []
 
-        for idx in range(n_z_vars):
-            z_vals.append(mdl[z[idx]])
+        if s.check() == sat:
+            mdl = s.model()
 
-        for idx in range(self.n_state_vars):
-            alpha_vals.append(mdl[alpha[idx]])
+            for idx in range(n_z_vars):
+                z_vals.append(mdl[z[idx]])
+
+            for idx in range(self.n_state_vars):
+                alpha_vals.append(mdl[alpha[idx]])
+
         print("Time taken by SMT: {}".format(str(time.time() - start_time)))
 
         return z_vals, alpha_vals
