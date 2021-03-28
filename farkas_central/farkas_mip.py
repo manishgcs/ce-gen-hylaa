@@ -4,56 +4,53 @@ import numpy as np
 from gurobipy import *
 
 
+def check_poly_feasibility(poly):
+    model = Model("CheckFeasibility")
+
+    # Oscillator
+    lb = -10000.0
+    ub = 1000.0
+
+    alpha = []
+    for idx in range(poly.n_state_vars):
+        temp_var = model.addVar(lb=lb, ub=ub, obj=0.0, vtype=GRB.CONTINUOUS, name="alpha[" + str(idx) + "]")
+        alpha.append(temp_var)
+    model.update()
+
+    for idy in range(poly.n_constraints):
+        con = LinExpr(0.0)
+        for idz in range(poly.n_state_vars):
+            con += poly.con_matrix[idy][idz] * alpha[idz]
+        model.addConstr(con <= poly.rhs[idy], name="pcon[" + str(idy) + "]")
+
+    objective = LinExpr(0.0)
+
+    model.setObjective(objective, GRB.MAXIMIZE)
+
+    model.setParam(GRB.Param.Threads, 1)
+    model.setParam(GRB.Param.TimeLimit, 100.0)
+
+    model.optimize()
+
+    status = model.Status
+    alpha_vals = []
+    if (status != GRB.OPTIMAL) or (status == GRB.INF_OR_UNBD) or (status == GRB.INFEASIBLE) or (
+            status == GRB.UNBOUNDED):
+        print("Optimization stopped with status " + str(status))
+
+    else:
+        print("Bounds:\t" + str(int(model.objVal)) + "\t" + str(int(model.objBound)))
+
+        for idx in range(poly.n_state_vars):
+            alpha_vals.append(float(alpha[idx].getAttr(GRB.Attr.X)))
+
+    return alpha_vals
+
+
 class FarkasMIP(FarkasObject):
 
     def __init__(self, P1, P2, Q_set, n_vars):
         FarkasObject.__init__(self, P1, P2, Q_set, n_vars)
-
-    def check_feasibility(self, poly_idx):
-        model = Model("CheckFeasibility")
-
-        # Oscillator
-        lb = -1000.0
-        ub = 100.0
-
-        alpha = []
-        for idx in range(self.n_state_vars):
-            temp_var = model.addVar(lb=lb, ub=ub, obj=0.0, vtype=GRB.CONTINUOUS, name="alpha[" + str(idx) + "]")
-            alpha.append(temp_var)
-        model.update()
-
-        polytope = self.polytope1
-        if poly_idx == 2:
-            polytope = self.polytope2
-        for idy in range(polytope.n_constraints):
-            con = LinExpr(0.0)
-            for idz in range(self.n_state_vars):
-                con += polytope.con_matrix[idy][idz] * alpha[idz]
-            model.addConstr(con <= polytope.rhs[idy],
-                            name="pcon[" + str(idy) + "]")
-
-        objective = LinExpr(0.0)
-
-        model.setObjective(objective, GRB.MAXIMIZE)
-
-        model.setParam(GRB.Param.Threads, 1)
-        model.setParam(GRB.Param.TimeLimit, 100.0)
-
-        model.optimize()
-
-        status = model.Status
-        alpha_vals = []
-        if (status != GRB.OPTIMAL) or (status == GRB.INF_OR_UNBD) or (status == GRB.INFEASIBLE) or (
-                status == GRB.UNBOUNDED):
-            print("Optimization stopped with status " + str(status))
-
-        else:
-            print("Bounds:\t" + str(int(model.objVal)) + "\t" + str(int(model.objBound)))
-
-            for idx in range(self.n_state_vars):
-                alpha_vals.append(float(alpha[idx].getAttr(GRB.Attr.X)))
-
-        return alpha_vals
 
     def solve_4_one_polytope_mip(self, poly_idx):
         model = Model("TestOnePolytope")
@@ -125,7 +122,7 @@ class FarkasMIP(FarkasObject):
         for idx in range(self.n_state_vars):
             print("\t" + str(float(x[idx].getAttr(GRB.Attr.X))) + "\n")
 
-    def solve_4_both_mip(self):
+    def solve_4_both(self):
         start_time = time.time()
         model = Model("TestFarkasMIP")
 

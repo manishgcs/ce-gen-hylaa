@@ -18,10 +18,7 @@ class RegexInstance:
     def solve(self, reg_expr):
         model = Model("RegexInstance")
 
-        epsilon = 0.000001
-        bigM = 1000.0
-        lb = -100000.0
-        ub = 1.0
+        epsilon = 0.00001
         if self.benchmark == "Ball":
             bigM = 1000.0
             lb = -1000.0
@@ -29,7 +26,7 @@ class RegexInstance:
         elif self.benchmark == "Oscillator":
             bigM = 10000.0
             lb = -100000.0
-            ub = 1.0
+            ub = 10.0
         elif self.benchmark == "Tanks":
             bigM = 100000.0
             lb = -1000000.0
@@ -50,6 +47,10 @@ class RegexInstance:
             bigM = 100.0
             lb = -100000.0
             ub = 10.0
+        else:
+            bigM = 1000.0
+            lb = -10000.0
+            ub = 100.0
 
         print("big M is %f" % bigM)
 

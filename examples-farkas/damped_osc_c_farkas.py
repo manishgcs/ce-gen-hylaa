@@ -14,6 +14,7 @@ from hylaa.pv_container import PVObject
 from hylaa.timerutil import Timers
 from hylaa.simutil import compute_simulation
 from farkas_central.bdd4Ce import BDD4CE
+import sys
 from hylaa.ce_smt import CeSmt
 from hylaa.ce_milp import CeMilp
 import matplotlib.pyplot as plt
@@ -65,11 +66,11 @@ def define_init_states(ha, init_r):
 def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
-    plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
+    plot_settings.plot_mode = PlotSettings.PLOT_MATLAB
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    s = HylaaSettings(step=0.2, max_time=20.0, disc_dyn=False, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.2, max_time=10.0, disc_dyn=False, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
     
     return s
@@ -88,41 +89,70 @@ def run_hylaa(settings, init_r, usafe_r):
     return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
 
-def compute_simulation_mt(milp_ce, z3_ce):
+def compute_simulation_mt(counter_exs):
     a_matrix = np.array([[-0.1, 1], [-1, -0.1]])
-    c_vector = np.array([0, 0], dtype=float)
-    milp_ce_simulation = compute_simulation(milp_ce, a_matrix, c_vector, 0.2, 100)
-
-    z3_ce_simulation = compute_simulation(z3_ce, a_matrix, c_vector, 0.2, 100)
+    c_vector = np.array([1, 0], dtype=float)
 
     with open("simulation", 'w') as f:
-        f.write('milp_simulation = [')
-        for point in milp_ce_simulation:
-            f.write('{},{};\n'.format(str(point[0]), str(point[1])))
-        f.write(']')
-        f.write('\n**************************************\n')
-        f.write('z3_simulation = [')
-        for point in z3_ce_simulation:
-            f.write('{},{};\n'.format(point[0], str(point[1])))
-        f.write(']')
+
+        for idx in range(len(counter_exs)):
+            counter_ex = counter_exs[idx]
+            # each counter_ex can have different ce's for different paths
+            ce = np.array(counter_ex[0])  # Take the one for the first path
+
+            print(ce)
+            ce_simulation = compute_simulation(ce, [a_matrix], [c_vector], [15], 0.2)
+
+            ce_name = 'simulation' + str(idx) + "["
+            f.write(ce_name)
+            for point in ce_simulation:
+                f.write('{},{};\n'.format(str(point[0]), str(point[1])))
+            f.write(']')
+            f.write('\n**************************************\n')
 
 
 if __name__ == '__main__':
     settings = define_settings()
     init_r = HyperRectangle([(-6, -5), (0, 1)])
 
-    # usafe_r = HyperRectangle([(-1.5, 1.5), (4, 6)])  # Small
-    # usafe_r = HyperRectangle([(-3, 2), (1, 5)])  # Medium
-    # usafe_r = HyperRectangle([(-4, 2), (-1, 6)])  # Large
-
     pv_object = run_hylaa(settings, init_r, None)
 
     # pv_object.compute_longest_ce()
     # ce_smt_object = CeSmt(pv_object)
-    # ce_smt_object.compute_counterexample()
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
     # ce_mip_object = CeMilp(pv_object)
-    # ce_mip_object.compute_counterexample('Oscillator', "01111111110111111111")
-    bdd_ce_object = BDD4CE(pv_object)
-    bdd_ce_object.create_bdd()
-    Timers.print_stats()
+    # ce_mip_object.compute_counterexample('Oscillator', "011111111")
+
+    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+
+    # orig_stdout = sys.stdout
+    # f = open('bdd_output.txt', 'w')
+    # sys.stdout = f
+    #
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=2, order='reverse')
+    #
+    # sys.stdout = orig_stdout
+    # f.close()
+    #
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
+
+    # counter_exs = []
+    # for r_exp in valid_exps:
+        # ce_mip_object = CeMilp(pv_object)
+        # ce_mip_object.compute_counterexample('Oscillator', r_exp)
+        # ce_smt_object = CeSmt(pv_object)
+        # counter_exs.append(ce_smt_object.compute_counterexample(regex_str=r_exp))
+
+    # print(counter_exs)
+
+    # ['11111', '11110', '01111', '01110', '01100', '00111', '00110', '00100', '00000']
+    # # [[[-6, 0.4890713139?]], [[-5.6560875164?, 0.8431768708?]], [[-5.8191497942?, 0]], [
+    # #     [-5.4579208530?, 0.5625807391?]], [[-5.3174890132?, 0.7812903695?]], [[-5.7883466739?, 0]], [
+    # #     [-5.5549529343?, 0]], [[-5.5526320064?, 0]], [[-5, 0]]]
+    #
+    # # compute_simulation_mt(counter_exs)
+    # init_r = HyperRectangle([(-5.0, -5.0), (0.0, 0.0)])
+    #
+    # pv_object = run_hylaa(settings, init_r, None)
+

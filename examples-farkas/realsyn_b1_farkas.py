@@ -8,6 +8,7 @@ from hylaa.timerutil import Timers
 from hylaa.pv_container import PVObject
 from controlcore.control_utils import get_input, extend_a_b
 from farkas_central.bdd4Ce import BDD4CE
+import sys
 from hylaa.ce_smt import CeSmt
 from hylaa.ce_milp import CeMilp
 from hylaa.simutil import compute_simulation
@@ -24,17 +25,13 @@ def define_ha(settings, usafe_r=None):
     # a_matrix = np.array([[0.0, 2.0], [1.0, 0.0]], dtype=float)
 
     # exp 1 and 2
-    # a_matrix = np.array([[0.0, 2.0], [-1.5, 0.0]], dtype=float)
-
-    # exp 3
-    a_matrix = np.array([[0.0, 2.0], [-1.5, -1.0]], dtype=float)
-
+    a_matrix = np.array([[0.0, 2.0], [-1.5, 0.0]], dtype=float)
 
     # exp 1
-    # b_matrix = np.array([[1], [-1]], dtype=float)
+    b_matrix = np.array([[1], [-1]], dtype=float)
 
-    # exp2
-    b_matrix = np.array([[1], [1]], dtype=float)
+    # # exp2
+    # b_matrix = np.array([[1], [1]], dtype=float)
 
     print(a_matrix,  b_matrix)
     R_mult_factor = 0.2
@@ -64,13 +61,10 @@ def define_ha(settings, usafe_r=None):
     usafe_set_constraint_list = []
     if usafe_r is None:
         # exp 1
-        # usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0], -2.1))
+        usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0], -2.0))
 
         # exp 2 - Significant diff across equivalent and non-equivalent runs for p_intersect reverse
-        # usafe_set_constraint_list.append(LinearConstraint([0.0, 1.0], -0.75))
-
-        # exp 3 - Significant diff (10%) across equivalent and non-equivalent runs for p_intersect w/o reverse
-        usafe_set_constraint_list.append(LinearConstraint([-1.0, 1.0], -1.0))
+        # usafe_set_constraint_list.append(LinearConstraint([0.0, 1.0], -0.85))
 
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -122,24 +116,53 @@ if __name__ == '__main__':
     settings = define_settings()
 
     # exp 1
-    # init_r = HyperRectangle([(1.0, 1.5), (1.0, 1.5)])
+    init_r = HyperRectangle([(1.0, 1.5), (1.0, 1.5)])
 
     # exp 2
     # init_r = HyperRectangle([(2.0, 2.5), (2.0, 2.5)])
-
-    # exp 3
-    init_r = HyperRectangle([(1.5, 2.5), (1.5, 2.5)])
 
     pv_object = run_hylaa(settings, init_r, None)
 
     longest_ce = pv_object.compute_longest_ce()
 
-    ce_smt_object = CeSmt(pv_object)
-    ce_smt_object.compute_counterexample()
-    # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
-    ce_mip_object = CeMilp(pv_object)
-    ce_mip_object.compute_counterexample('Ball')
-    bdd_ce_object = BDD4CE(pv_object)
-    bdd_ce_object.create_bdd()
+    # ce_smt_object = CeSmt(pv_object)
+    # ce_smt_object.compute_counterexample(regex_str="00000000000000101")
+    # ce_mip_object = CeMilp(pv_object)
+    # ce_mip_object.compute_counterexample('default', regex="00000000000000101")
+    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+
+    # orig_stdout = sys.stdout
+    # f = open('bdd_output.txt', 'w')
+    # sys.stdout = f
+    #
+    # exp 1
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=14, order='random')
+
+    # exp 2
+    # bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=16, order='random')
+    #
+    # sys.stdout = orig_stdout
+    # f.close()
+    #
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
+
+    # print(valid_exps)
+    # print(invalid_exps)
+    # valid_exps.sort()
+
+    # 00000000100000000000000000000000 # with shuffled r_idx
+
+    # with p_intersect reverse
+    # 00000000000000000100000000000000
+    # 00000000000000001000000000000000
+    # 00000000000000001100000000000000
+    # 00000000000000001110000000000000
+
+    # with open("valid_exps_incorrect", 'w') as f:
+    #     for exp in valid_exps:
+    #         f.write('{}\n'.format(exp))
+    #     f.close()
+    # print(valid_exps)
 
     Timers.print_stats()

@@ -29,6 +29,35 @@ def convert_constraints_into_z3_str(c_lhs, c_rhs, alpha_or_y='alpha', r_operator
     return z3_constraints
 
 
+def check_poly_feasibility_smt(poly):
+    s = Solver()
+    set_option(rational_to_decimal=True)
+
+    alpha = []
+    for dim in range(poly.n_state_vars):
+        alpha_i = 'alpha_' + str(dim + 1)
+        alpha.append(Real(alpha_i))
+
+    c_idx = True
+    for idy in range(poly.n_constraints):
+        c_idy = alpha[0] * poly.con_matrix[idy][0]
+        for idz in range(1, poly.n_state_vars):
+            c_idy = c_idy + alpha[idz] * poly.con_matrix[idy][idz]
+
+        c_idx = And(c_idx, c_idy <= poly.rhs[idy])
+
+    s.add(c_idx)
+
+    alpha_vals = []
+    if s.check() == sat:
+        mdl = s.model()
+
+        for idx in range(poly.n_state_vars):
+            alpha_vals.append(mdl[alpha[idx]])
+
+    return alpha_vals
+
+
 class FarkasSMT(FarkasObject):
 
     def __init__(self, P1, P2, Q_set, n_vars):
@@ -146,7 +175,7 @@ class FarkasSMT(FarkasObject):
         z3_preds_file.close()
         print("Time taken by SMT: {}".format(str(time.time() - start_time)))
 
-    def solve_4_both_smt(self):
+    def solve_4_both(self):
         start_time = time.time()
         n_z_vars = 1 + len(self.q_set)
 
@@ -213,6 +242,7 @@ class FarkasSMT(FarkasObject):
             s.add(z[idx] == c_idx)
             s.add_soft(z[idx])
             ida = ida + n1_constraints
+
         s.add(z[0] == True)
 
         # y >= 0

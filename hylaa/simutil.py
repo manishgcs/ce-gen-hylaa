@@ -147,6 +147,13 @@ class DyData(Freezable):
         mu = 0
         ml = 0
 
+        # matrix = np.array([[-0.1, 1.0], [-1, -0.1]])
+        # print(matrix[0].shape)
+
+        # for idx in range(matrix.shape[0]):
+        #     for idy in range(matrix.shape[1]):
+        #         print(matrix[idx][idy])
+
         for row in range(dims):
             for col in range(dims):
                 if matrix[row][col] != 0:
@@ -642,6 +649,7 @@ def compute_simulation(start, a_matrices, b_vectors, max_steps_list, step_time=1
             sim_sett.stdout = False
             sim_sett.threads = 1
 
+            # print(a_matrix, b_vector)
             bundle = SimulationBundle(a_matrix, b_vector, sim_sett)
 
             if bundle.dy_data.dense_a_matrix is None:
@@ -649,7 +657,8 @@ def compute_simulation(start, a_matrices, b_vectors, max_steps_list, step_time=1
                 bundle.dy_data.dense_b_vector = bundle.dy_data.sparse_b_vector.todense().transpose()
 
             if disc_dyn is False:
-                result = raw_sim_one(start, max_steps, bundle.dy_data, bundle.settings, include_step_zero=True)
+                print(start)
+                result = raw_sim_one(start, max_steps, bundle.dy_data, bundle.settings, include_step_zero=False)
             else:
                 result = raw_sim_one_disc(start, max_steps, 1, bundle.dy_data)
             sim.extend(result)

@@ -216,11 +216,11 @@ class CeSmt(object):
             path_id = path_id + 1
         Timers.toc("Time taken by SMT")
 
-    def compute_counterexample(self, regex=None):
-        if regex is None:
-            self.compute_ce_wo_regex()
+    def compute_counterexample(self, regex_str=None):
+        if regex_str is None:
+            return self.compute_ce_wo_regex()
         else:
-            self.compute_ce_w_regex(regex=regex)
+            return self.compute_ce_w_regex(regex_str=regex_str)
 
     def compute_ce_wo_regex(self):
         start_node = self.pv_object.reach_tree.nodes[0]
@@ -229,6 +229,7 @@ class CeSmt(object):
         Timers.tic("Time taken by SMT")
         self.pv_object.explore_tree_for_error_stars(start_node, current_path, paths)
         print("No of paths: {}".format(len(paths)))
+        alpha_vals = []
         for path in paths:
             prev_node_state = start_node.state
             print("No of nodes in the path is: '{}'".format(len(path)))
@@ -279,7 +280,7 @@ class CeSmt(object):
                 s.add_soft(z[node_id])
 
             z_vals = []
-            alpha_vals = []
+            alpha_val = []
 
             # opt_cost = Real('opt_cost')
             # for z_idx in range(0, n_z_vars):
@@ -291,12 +292,15 @@ class CeSmt(object):
                     z_vals.append(mdl[z[idx]])
 
                 for idx in range(self.num_dims):
-                    alpha_vals.append(mdl[alpha[idx]])
+                    alpha_val.append(mdl[alpha[idx]])
 
-                print(z_vals, alpha_vals)
+                print(z_vals, alpha_val)
+
+            alpha_vals.append(alpha_val)
         Timers.toc("Time taken by SMT")
+        return alpha_vals
 
-    def compute_ce_w_regex(self, regex):
+    def compute_ce_w_regex(self, regex_str):
         start_node = self.pv_object.reach_tree.nodes[0]
         current_path = []
         paths = []
@@ -307,76 +311,76 @@ class CeSmt(object):
         # Timers.toc("Time taken for computing all string of given length")
 
         Timers.tic("Time taken by SMT")
-        for regex_string in regex:
 
-            init_node_constraints = start_node.state.constraint_list
-            s = Solver()
-            set_option(rational_to_decimal=True)
+        init_node_constraints = start_node.state.constraint_list
+        s = Solver()
+        set_option(rational_to_decimal=True)
 
-            alpha = []
-            for dim in range(self.num_dims):
-                alpha_i = 'alpha_' + str(dim + 1)
-                alpha.append(Real(alpha_i))
+        alpha = []
+        for dim in range(self.num_dims):
+            alpha_i = 'alpha_' + str(dim + 1)
+            alpha.append(Real(alpha_i))
 
-            basis_centers = []
-            init = True
-            for idy in range(len(init_node_constraints)):
-                pred_lhs = init_node_constraints[idy].vector.tolist()
-                pred_rhs = init_node_constraints[idy].value
+        basis_centers = []
+        init = True
+        for idy in range(len(init_node_constraints)):
+            pred_lhs = init_node_constraints[idy].vector.tolist()
+            pred_rhs = init_node_constraints[idy].value
+            c_idy = alpha[0] * pred_lhs[0]
+
+            for idz in range(1, self.num_dims):
+                c_idy = c_idy + alpha[idz] * pred_lhs[idz]
+
+            init = And(init, c_idy <= pred_rhs)
+
+        s.add(init)
+
+        prev_node_state = start_node.state
+
+        z = []
+        for str_index in range(len(regex_str)):
+            z_idx = 'z_' + str(str_index + 1)
+            z.append(Bool(z_idx))
+            character = regex_str[str_index]
+            if character is '1':
+                s.add(z[str_index])
+            elif character is '0':
+                s.add(Not(z[str_index]))
+
+        for str_index in range(len(regex_str)):
+            node = path[str_index]
+            if prev_node_state.mode.name != node.state.mode.name:
+                if isinstance(node.state.parent.star.parent, DiscretePostParent):
+                    basis_centers.append(node.state.parent.star.parent.prestar_basis_center)
+                    prev_node_state = node.state
+            usafe_basis_preds = self.pv_object.compute_usafe_set_pred_in_star_basis(node.state)
+            for pred_index in range(len(usafe_basis_preds)):
+                pred = usafe_basis_preds[pred_index]
+                for basis_center in basis_centers[::-1]:
+                    pred = self.pv_object.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
+                usafe_basis_preds[pred_index] = pred
+
+            c_idx = True
+            for idy in range(len(usafe_basis_preds)):
+                pred_lhs = usafe_basis_preds[idy].vector.tolist()
+                pred_rhs = usafe_basis_preds[idy].value
                 c_idy = alpha[0] * pred_lhs[0]
 
                 for idz in range(1, self.num_dims):
                     c_idy = c_idy + alpha[idz] * pred_lhs[idz]
 
-                init = And(init, c_idy <= pred_rhs)
+                c_idx = And(c_idx, c_idy <= pred_rhs)
 
-            s.add(init)
+            s.add(z[str_index] == c_idx)
 
-            prev_node_state = start_node.state
+        alpha_val = []
 
-            z = []
-            for str_index in range(len(regex_string)):
-                z_idx = 'z_' + str(str_index + 1)
-                z.append(Bool(z_idx))
-                character = regex_string[str_index]
-                if character is '1':
-                    s.add(z[str_index])
-                elif character is '0':
-                    s.add(Not(z[str_index]))
+        if s.check() == sat:
+            mdl = s.model()
 
-            for str_index in range(len(regex_string)):
-                node = path[str_index]
-                if prev_node_state.mode.name != node.state.mode.name:
-                    if isinstance(node.state.parent.star.parent, DiscretePostParent):
-                        basis_centers.append(node.state.parent.star.parent.prestar_basis_center)
-                        prev_node_state = node.state
-                usafe_basis_preds = self.pv_object.compute_usafe_set_pred_in_star_basis(node.state)
-                for pred_index in range(len(usafe_basis_preds)):
-                    pred = usafe_basis_preds[pred_index]
-                    for basis_center in basis_centers[::-1]:
-                        pred = self.pv_object.convert_usafe_basis_pred_in_basis_center(pred, basis_center)
-                    usafe_basis_preds[pred_index] = pred
+            for idx in range(self.num_dims):
+                alpha_val.append(mdl[alpha[idx]])
 
-                c_idx = True
-                for idy in range(len(usafe_basis_preds)):
-                    pred_lhs = usafe_basis_preds[idy].vector.tolist()
-                    pred_rhs = usafe_basis_preds[idy].value
-                    c_idy = alpha[0] * pred_lhs[0]
-
-                    for idz in range(1, self.num_dims):
-                        c_idy = c_idy + alpha[idz] * pred_lhs[idz]
-
-                    c_idx = And(c_idx, c_idy <= pred_rhs)
-
-                s.add(z[str_index] == c_idx)
-
-            alpha_vals = []
-
-            if s.check() == sat:
-                mdl = s.model()
-
-                for idx in range(self.num_dims):
-                    alpha_vals.append(mdl[alpha[idx]])
-
-            print(alpha_vals)
+        print(alpha_val)
         Timers.toc("Time taken by SMT")
+        return [alpha_val]

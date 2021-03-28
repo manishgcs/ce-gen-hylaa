@@ -119,12 +119,12 @@ if __name__ == '__main__':
 
     longest_ce = pv_object.compute_longest_ce()
 
-    ce_smt_object = CeSmt(pv_object)
-    ce_smt_object.compute_counterexample()
+    # ce_smt_object = CeSmt(pv_object)
+    # ce_smt_object.compute_counterexample()
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
-    ce_mip_object = CeMilp(pv_object)
-    ce_mip_object.compute_counterexample('Ball')
-    bdd_ce_object = BDD4CE(pv_object)
-    bdd_ce_object.create_bdd()
+    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=-1, order='random')  # check for reverse order too
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
 
     Timers.print_stats()

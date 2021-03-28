@@ -56,7 +56,7 @@ class CeMilp(object):
                             con_matrix[idx][idy] = pred_list[idy]
                     rhs[idx] = pred.value
                 # print(con_matrix)
-                polytope = Polytope(no_of_constraints, con_matrix, rhs)
+                polytope = Polytope(con_matrix, rhs)
 
                 milp_instance.addPolytope(polytope)
 
