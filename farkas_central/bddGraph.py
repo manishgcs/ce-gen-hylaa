@@ -4,6 +4,7 @@ from hylaa.timerutil import Timers
 
 # BDD Graph for representing counter examples
 
+
 class BDDGraphTransition(object):
     def __init__(self, succ_node):
         self.succ_node = succ_node
@@ -70,14 +71,15 @@ class BDDGraph(object):
             elif current_node.id == 't0':
                 invalid_exps.append(current_regex)
                 # print(" \n Expression is " + current_regex)
-            return valid_exps, invalid_exps
 
-        if current_node.one_transition is not None:
-            valid_exps, invalid_exps = self.traverse_subtree(current_node.one_transition.succ_node, current_regex+'1', valid_exps, invalid_exps)
+        else:
+            if current_node.one_transition is not None:
+                valid_exps, invalid_exps = self.traverse_subtree(current_node.one_transition.succ_node, current_regex+'1',
+                                                             valid_exps, invalid_exps)
 
-        if current_node.zero_transition is not None:
-            valid_exps, invalid_exps = self.traverse_subtree(current_node.zero_transition.succ_node, current_regex + '0', valid_exps, invalid_exps)
-
+            if current_node.zero_transition is not None:
+                valid_exps, invalid_exps = self.traverse_subtree(current_node.zero_transition.succ_node,
+                                                             current_regex + '0', valid_exps, invalid_exps)
         return valid_exps, invalid_exps
 
     def generate_expressions(self):
@@ -89,4 +91,3 @@ class BDDGraph(object):
         valid_exps, invalid_exps = self.traverse_subtree(current_node, current_regex, valid_exps, invalid_exps)
         Timers.toc('BDD Traversal Time')
         return valid_exps, invalid_exps
-

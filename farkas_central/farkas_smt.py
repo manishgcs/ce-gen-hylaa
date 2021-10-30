@@ -302,3 +302,158 @@ class FarkasSMT(FarkasObject):
 
         return z_vals, alpha_vals
 
+    # Making z2 (second polytope explicitly true) - Doesn't seem to be working. In fact, it gives some weird results
+    def solve_4_both_test(self):
+        start_time = time.time()
+        n_z_vars = 1 + len(self.q_set)
+
+        A1_matrix = self.polytope1.con_matrix
+        A2_matrix = None
+        b1_array = self.polytope1.rhs
+        b2_array = None
+
+        n1_constraints_per_polytope = [len(self.polytope1.rhs)]
+        n2_constraints_per_polytope = []
+
+        for idx in range(len(self.q_set)):
+            q_poly = self.q_set[idx]
+            A1_matrix = np.concatenate((A1_matrix, q_poly.con_matrix))
+            if A2_matrix is None:
+                A2_matrix = q_poly.con_matrix
+            else:
+                A2_matrix = np.concatenate((A2_matrix, q_poly.con_matrix))
+            b1_array = np.concatenate((b1_array, q_poly.rhs))
+
+            if b2_array is None:
+                b2_array = q_poly.rhs
+            else:
+                b2_array = np.concatenate((b2_array, q_poly.rhs))
+            n1_constraints_per_polytope.append(len(q_poly.rhs))
+            n2_constraints_per_polytope.append(len(q_poly.rhs))
+
+        assert n_z_vars == len(n1_constraints_per_polytope)
+        assert len(A1_matrix) == np.sum(n1_constraints_per_polytope)
+
+        s = Optimize()
+        set_option(rational_to_decimal=True)
+
+        alpha = []
+        for dim in range(self.n_state_vars):
+            alpha_i = 'alpha_' + str(dim + 1)
+            alpha.append(Real(alpha_i))
+
+        n_y_vars = 0
+        # y >= 0
+        y = []
+        for idx in range(len(n2_constraints_per_polytope)):
+            n2_constraints = n2_constraints_per_polytope[idx]
+            for idy in range(n2_constraints):
+                y_i = 'y_' + str(n_y_vars + 1)
+                y.append(Real(y_i))
+                n_y_vars = n_y_vars + 1
+
+        assert n_y_vars == len(A2_matrix)
+
+        # constraints for decision variables z's
+        ida = 0
+        z = []
+        for idx in range(n_z_vars):
+            n1_constraints = n1_constraints_per_polytope[idx]
+            c_lhs = A1_matrix[ida:ida + n1_constraints]
+            c_rhs = b1_array[ida:ida + n1_constraints]
+
+            z_idx = 'z_' + str(idx + 1)
+            z.append(Bool(z_idx))
+
+            c_idx = True
+            for idy in range(n1_constraints):
+                c_idy = alpha[0] * c_lhs[idy][0]
+
+                for idz in range(1, self.n_state_vars):
+                    c_idy = c_idy + alpha[idz] * c_lhs[idy][idz]
+
+                c_idx = And(c_idx, c_idy <= c_rhs[idy])
+
+            s.add(z[idx] == c_idx)
+            s.add_soft(z[idx])
+            ida = ida + n1_constraints
+
+        s.add(z[0] == True)
+
+        # constraints for decision variables z's
+        c_lhs = self.polytope2.con_matrix
+        c_rhs = self.polytope2.rhs
+
+        z2 = Bool('z2')
+
+        c_idx = True
+        for idy in range(len(self.polytope2.rhs)):
+            c_idy = alpha[0] * c_lhs[idy][0]
+
+            for idz in range(1, self.n_state_vars):
+                c_idy = c_idy + alpha[idz] * c_lhs[idy][idz]
+
+            c_idx = And(c_idx, c_idy <= c_rhs[idy])
+
+        s.add(True == c_idx)
+
+        s.add(z[0] == True)
+
+        # y >= 0
+        n_y_vars = 0
+        for idx in range(len(n2_constraints_per_polytope)):
+            n2_constraints = n2_constraints_per_polytope[idx]
+            for idy in range(n2_constraints):
+                s.add(y[n_y_vars] >= 0.0)
+                n_y_vars = n_y_vars + 1
+
+        A2_matrix_t = np.transpose(A2_matrix)
+
+        # A^T * y = 0
+        for idx in range(len(A2_matrix_t)):
+            A2_t_row = A2_matrix_t[idx]
+
+            c_idx = A2_t_row[0] * y[0]
+
+            for idy in range(1, len(A2_t_row)):
+                c_idx = c_idx + A2_t_row[idy] * y[idy]
+
+            s.add(c_idx == 0.0)
+
+        # b^T * y < 0
+        b2_array_t = np.transpose(b2_array)
+        assert n_y_vars == len(b2_array_t)
+
+        c_idx = b2_array_t[0] * y[0]
+
+        for idy in range(1, len(b2_array_t)):
+            c_idx = c_idx + b2_array_t[idy] * y[idy]
+
+        s.add(c_idx < 0.0)
+
+        # y = 0 for z = 0, y > 0 for z = 1
+        y_var_idx = 0
+        # y_var_idx = n2_constraints_per_polytope[0]  # First entry corresponds to P2. The rest of them are for Q-set
+        for idx in range(0, len(n2_constraints_per_polytope)):
+            n2_constraints = n2_constraints_per_polytope[idx]
+            for idy in range(n2_constraints):
+                s.add(Or(And(z[idx] == False, y[y_var_idx] == 0.0), And(z[idx] == True, y[y_var_idx] > 0.0)))
+                # s.add(Or(z[idx] == True, y[y_var_idx] == 0.0))
+                y_var_idx = y_var_idx + 1
+
+        z_vals = []
+        alpha_vals = []
+
+        if s.check() == sat:
+            mdl = s.model()
+
+            for idx in range(n_z_vars):
+                z_vals.append(mdl[z[idx]])
+
+            for idx in range(self.n_state_vars):
+                alpha_vals.append(mdl[alpha[idx]])
+
+        print("Time taken by SMT: {}".format(str(time.time() - start_time)))
+
+        return z_vals, alpha_vals
+

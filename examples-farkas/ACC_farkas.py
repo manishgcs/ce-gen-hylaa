@@ -63,22 +63,21 @@ def define_ha(settings, usafe_r):
         # exp 2
         # usafe_set_constraint_list.append(LinearConstraint([1, 0, 0, 0, 0], 4))
 
-        # exp 3 - don't reverse p_intersect and see diff across equivalent/non-equ
+        # exp 3
         # usafe_set_constraint_list.append(LinearConstraint([1, 0, 0, 0, 0], 4.2))
 
-        # exp 4 - don't reverse p_intersect and see diff across equivalent/non-equ
+        # exp 4
         # usafe_set_constraint_list.append(LinearConstraint([1, 0, 0, 0, 0], 4.5))
 
-        # exp 5 - time diff across reverse and non-reverse p_intersect
+        # exp 5
         # usafe_set_constraint_list.append(LinearConstraint([1, 0, 0, 0, 0], 4.7))
 
-        # Most interesting
-        # exp 6 - Almost half time for reverse p_intersect. Also, equivalent reduced the time by 3 sec
+        # exp 6
         # usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, -1, 0], -2))
 
-        # exp 7 - reverse p_intersect takes less time. Equivalent gives us two instances of equivalence of nodes
-        # check for -1.85 as well - similar behavior
-        usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, -1, 0], -1.8))
+        # exp 7
+        # check for -1.8 as well - similar behavior
+        usafe_set_constraint_list.append(LinearConstraint([0, 0, 0, -1, 0], -1.85))
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
         for constraint in usafe_star.constraint_list:
@@ -131,14 +130,18 @@ if __name__ == '__main__':
     init_r = HyperRectangle([(2, 5), (18, 22), (20, 20), (-1, 1), (0, 0)])
 
     pv_object = run_hylaa(settings, init_r, None)
-    longest_ce = pv_object.compute_longest_ce()
-    ce_smt_object = CeSmt(pv_object)
-    ce_smt_object.compute_counterexample()
+    # longest_ce = pv_object.compute_longest_ce()
+    # ce_smt_object = CeSmt(pv_object)
+    # ce_smt_object.compute_counterexample()
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
-    ce_mip_object = CeMilp(pv_object)
-    ce_mip_object.compute_counterexample(benchmark='Oscillator')
-    bdd_ce_object = BDD4CE(pv_object)
-    bdd_ce_object.create_bdd()
+    # ce_mip_object = CeMilp(pv_object)
+    # ce_mip_object.compute_counterexample(benchmark='Oscillator')
+
+    # mid-order = +2
+    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
     Timers.print_stats()
 
     # psList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
