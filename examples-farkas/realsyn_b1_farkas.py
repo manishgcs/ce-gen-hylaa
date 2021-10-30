@@ -47,7 +47,7 @@ def define_ha(settings, usafe_r=None):
     print(k_matrix)
     # a_bk_matrix = a_matrix_ext - np.matmul(b_matrix_ext, k_matrix)
     a_bk_matrix = a_matrix - np.matmul(b_matrix, k_matrix)
-
+    # print(a_bk_matrix)
     loc1.a_matrix = a_bk_matrix
     loc1.c_vector = np.array([0.0, 0.0], dtype=float)
     # print(a_bk_matrix)
@@ -129,6 +129,8 @@ if __name__ == '__main__':
     # ce_smt_object.compute_counterexample(regex_str="00000000000000101")
     # ce_mip_object = CeMilp(pv_object)
     # ce_mip_object.compute_counterexample('default', regex="00000000000000101")
+
+    # mid-order does not give any good results (merges non-equ nodes)
     bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
 
     # orig_stdout = sys.stdout
@@ -136,11 +138,10 @@ if __name__ == '__main__':
     # sys.stdout = f
     #
     # exp 1
-    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=14, order='random')
+    # mid-order = 3 (1 is slightly better though)
+    # random: [15, 20, 13, 17, 9, 11, 18, 19, 7, 16, 2, 12, 1, 14, 6, 0, 5, 10, 3, 8, 4]
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
 
-    # exp 2
-    # bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=16, order='random')
-    #
     # sys.stdout = orig_stdout
     # f.close()
     #

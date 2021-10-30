@@ -58,10 +58,10 @@ def define_ha(settings, usafe_r=None):
     if usafe_r is None:
 
         # exp 1
+        # usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, 0.0, 1.0], -2.9))
 
-        # p_intersect reverse for the equivalent run takes much less time compared to non-equivalent run
-        # Also, p_intersect reverse takes much less time compared to its non-reverse counterpart for the equivalent run
-        usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, 0.0, 1.0], -2.9))
+        # exp 2
+        usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, 0.0, 1.0], -3.42))
 
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -112,18 +112,23 @@ def run_hylaa(settings, init_r, usafe_r):
 if __name__ == '__main__':
     settings = define_settings()
 
-    # exp 1
+    # exp 1, 2
     init_r = HyperRectangle([(-2.5, -1.5), (-5.5, -4.5), (1.5, 2.5), (-1.5, -0.5)])
 
     pv_object = run_hylaa(settings, init_r, None)
 
-    longest_ce = pv_object.compute_longest_ce()
+    # longest_ce = pv_object.compute_longest_ce()
 
     # ce_smt_object = CeSmt(pv_object)
     # ce_smt_object.compute_counterexample()
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
-    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
-    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=-1, order='random')  # check for reverse order too
+
+    # mid-order gives same result for almost all cases
+    #                 second_half = second_half[::-1]
+    #                 first_half = first_half[::-1]
+    # random: [15, 20, 13, 17, 9, 11, 18, 19, 7, 16, 2, 12, 1, 14, 6, 0, 5, 10, 3, 8, 4, 21]
+    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))
 

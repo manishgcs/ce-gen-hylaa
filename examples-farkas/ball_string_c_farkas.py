@@ -42,8 +42,8 @@ def define_ha(settings, usafe_r=None):
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-        # usafe_set_constraint_list.append(LinearConstraint([0.0, -1.0], -6.5))
-        usafe_set_constraint_list.append(LinearConstraint([3.0, -1.0], -7))  # for line with pts (-1, 4) and (0, 7)
+        usafe_set_constraint_list.append(LinearConstraint([0.0, -1.0], -6.5))
+        # usafe_set_constraint_list.append(LinearConstraint([3.0, -1.0], -7))  # for line with pts (-1, 4) and (0, 7)
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
         for constraint in usafe_star.constraint_list:
@@ -106,14 +106,31 @@ if __name__ == '__main__':
 
     pv_object = run_hylaa(settings, init_r, None)
 
-    longest_ce = pv_object.compute_longest_ce()
+    # longest_ce = pv_object.compute_longest_ce()
 
-    ce_smt_object = CeSmt(pv_object)
-    ce_smt_object.compute_counterexample()
+    # ce_smt_object = CeSmt(pv_object)
+    # ce_smt_object.compute_counterexample()
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
-    ce_mip_object = CeMilp(pv_object)
-    ce_mip_object.compute_counterexample('Ball')
-    # bdd_ce_object = BDD4CE(pv_object)
-    # bdd_ce_object.create_bdd()
+    # ce_mip_object = CeMilp(pv_object)
+    # ce_mip_object.compute_counterexample('Ball')
 
+    # mid-order = +1
+    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='default')
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
     Timers.print_stats()
+
+    psList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+    # psSet = set()
+    # for element in psList:
+    #    e_set = set([element])
+    #    print ("Final Set: {}".format(e_set))
+    #    psSet.add(tuple(e_set))
+    #    if psSet.issubset(tuple(e_set)):
+    #        print ("This is a subset")
+    #
+    #    print ("Final Set: {}".format(psSet))
+    pv_object.list_powerset(psList)
+    # print(set(pv_object.powerset(psList)))
+    # pv_object.powerset(psList)

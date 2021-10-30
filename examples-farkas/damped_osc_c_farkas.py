@@ -70,7 +70,7 @@ def define_settings():
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    s = HylaaSettings(step=0.2, max_time=10.0, disc_dyn=False, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.2, max_time=2.6, disc_dyn=False, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
     
     return s
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     pv_object = run_hylaa(settings, init_r, None)
 
-    # pv_object.compute_longest_ce()
+    ce_object = pv_object.compute_longest_ce()
     # ce_smt_object = CeSmt(pv_object)
     # ce_smt_object.compute_counterexample(regex=["01111111110111111111"])
     # ce_mip_object = CeMilp(pv_object)
@@ -129,23 +129,25 @@ if __name__ == '__main__':
     # f = open('bdd_output.txt', 'w')
     # sys.stdout = f
     #
-    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=2, order='reverse')
+    # random: [4, 0, 3, 2, 1]
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
     #
     # sys.stdout = orig_stdout
     # f.close()
     #
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))
-
+    Timers.print_stats()
     # counter_exs = []
     # for r_exp in valid_exps:
-        # ce_mip_object = CeMilp(pv_object)
-        # ce_mip_object.compute_counterexample('Oscillator', r_exp)
+    #     ce_mip_object = CeMilp(pv_object)
+    #     ce_mip_object.compute_counterexample('Oscillator', r_exp)
         # ce_smt_object = CeSmt(pv_object)
         # counter_exs.append(ce_smt_object.compute_counterexample(regex_str=r_exp))
 
     # print(counter_exs)
 
+    # SMT
     # ['11111', '11110', '01111', '01110', '01100', '00111', '00110', '00100', '00000']
     # # [[[-6, 0.4890713139?]], [[-5.6560875164?, 0.8431768708?]], [[-5.8191497942?, 0]], [
     # #     [-5.4579208530?, 0.5625807391?]], [[-5.3174890132?, 0.7812903695?]], [[-5.7883466739?, 0]], [
@@ -155,4 +157,18 @@ if __name__ == '__main__':
     # init_r = HyperRectangle([(-5.0, -5.0), (0.0, 0.0)])
     #
     # pv_object = run_hylaa(settings, init_r, None)
+
+    # MILP - Maximize
+    # [-5.817558656770154, 1], [-5.817546916682593, 1], [ -5.81914979427765, 0],
+    # [-5.808384589413996, 0.6863503821890522], [-5.457904893476833, 0.5626055947678468], [ -5.819136660481297, 0],
+    # [-5.789675278469988, 0.04588338357831663], [-5.547426716565577, 0.013388794180122954],
+    # [-4.999989999996615, 1.0000100000033854]
+
+    # MILP - Minimize
+    # [-6.0, 0.48907131395307324], [-5.817546916682593 , 1], [ -5.81914979427765, 0],
+
+    # Mixed
+    # [-6, 0.4890713139?]], [[-5.6560875164?, 0.8431768708?]], [[-5.8191497942?, 0],
+    # [-5.808384589413996, 0.6863503821890522], [-5.3174890132?, 0.7812903695?], [-5.7883466739?, 0],
+    # [-5.789675278469988, 0.04588338357831663], [-5.5526320064?, 0], [-5, 0]
 

@@ -138,7 +138,8 @@ if __name__ == '__main__':
     # ce_mip_object.compute_counterexample(benchmark='Oscillator')
 
     # mid-order = +2
-    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+    # random: [16, 14, 17, 15, 11, 7, 10, 1, 12, 6, 0, 2, 9, 5, 13, 3, 8, 4]
+    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
     bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))

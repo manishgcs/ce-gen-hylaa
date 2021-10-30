@@ -28,13 +28,13 @@ def define_ha(settings, usafe_r=None):
 
 
     # exp 1
-    b_matrix = np.array([[1, 0],
+    b_matrix = np.array([[0, 0],
                          [0, 0],
                          [1, 0],
                          [0, 1]], dtype=float)
 
     print(a_matrix,  b_matrix)
-    R_mult_factor = 0.1
+    R_mult_factor = 0.01
 
     Q_matrix = np.eye(len(a_matrix[0]), dtype=float)
 
@@ -58,15 +58,7 @@ def define_ha(settings, usafe_r=None):
     if usafe_r is None:
 
         # exp 1
-        # significant diff (10 sec) across equivalent/non-equ runs for p_intersect without reverse
-        # usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0], -4.8))
-
-        # exp 2
-        # significant diff (13-15 sec) across equivalent/non-equ runs for p_intersect without reverse
-        # usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, 1.0, 0.0], -5.0))
-
-        # exp 3
-        usafe_set_constraint_list.append(LinearConstraint([1.0, 0.0, 0.0, 0.0], -5.2))
+        usafe_set_constraint_list.append(LinearConstraint([0.0, 0.0, 1.0, 0.0], -40.0))
 
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -92,8 +84,8 @@ def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
     plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
-    plot_settings.xdim = 0
-    plot_settings.ydim = 1
+    plot_settings.xdim = 1
+    plot_settings.ydim = 2
 
     settings = HylaaSettings(step=0.02, max_time=3.0, disc_dyn=False, plot_settings=plot_settings)
     settings.stop_when_error_reachable = False
@@ -117,21 +109,16 @@ def run_hylaa(settings, init_r, usafe_r):
 if __name__ == '__main__':
     settings = define_settings()
 
-    # exp 1 , 2, 3
-    init_r = HyperRectangle([(0.3, 0.7), (1.3, 1.7), (0, 0), (0, 0)])
+    init_r = HyperRectangle([(2.0, 3.0), (-3.5, -2.5), (0, 2), (0, 0)])
 
     pv_object = run_hylaa(settings, init_r, None)
 
     # longest_ce = pv_object.compute_longest_ce()
 
-    # ce_smt_object = CeSmt(pv_object)
-    # ce_smt_object.compute_counterexample(regex=["111111111111111111111110", "00111110"])
-    # ce_mip_object = CeMilp(pv_object)
-    # ce_mip_object.compute_counterexample('Ball', regex="111111111111111111111110")
-
     # mid-order = +3
+    # random: [16, 19, 18, 22, 11, 24, 12, 14, 9, 7, 17, 2, 15, 1, 6, 13, 0, 5, 10, 3, 20, 8, 4, 21, 23]
     bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
-    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='default')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))
 
