@@ -9,24 +9,22 @@ def check_instance():
 
     # dynamics x' = Ax + Bu + c
     a_matrix = np.array([\
-        [-1.4142000000000001, 0.0, 0.0, 0.0], \
-        [0.0, -1.4142000000000001, 0.0, 0.0], \
-        [0.0, 0.0, -1.4142000000000001, 0.0], \
-        [0.0, 0.0, 0.0, -1.4142000000000001], \
+        [-0.9980723499451429, 0.0], \
+        [0.0, 0.0], \
         ])
 
     b_matrix = None
-    c_vector = np.array([0.0, 0.0, 0.0, 0.0])
+    c_vector = np.array([0.0, 1.0])
 
     inputs = None
-    end_point = [-1.8066109127540495e-06, -2.5292552778556692e-06, 1.0839665476524297e-06, -2.5292552778556692e-06]
-    start_point = [-2.5, -3.5, 1.5, -3.5]
+    end_point = [0.49999999999999994, 1.7999999999999998]
+    start_point = [3.0143459440671965, 0.0]
 
-    step = 0.05
-    max_time = 10.0
+    step = 0.01
+    max_time = 1.8
 
-    normal_vec = [1.0, 0.0, 0.0, 0.0]
-    normal_val = 1.0
+    normal_vec = [-1.0, 0.0]
+    normal_val = -0.4
 
     sim_states, sim_times = check(a_matrix, b_matrix, c_vector, step, max_time, start_point, inputs, end_point)
 
