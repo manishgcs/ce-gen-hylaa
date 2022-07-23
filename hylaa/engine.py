@@ -319,6 +319,7 @@ class HylaaEngine(object):
             sim_step = self.cur_step_in_mode + 1 + state.fast_forward_steps
 
             new_basis_matrix, new_center = sim_bundle.get_vecs_origin_at_step(sim_step, self.max_steps_remaining, self.discrete_dyn)
+            # print(new_basis_matrix, new_center)
 
             # if False:
             #     if self.discrete_dyn is True:

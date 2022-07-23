@@ -73,9 +73,9 @@ def mult(size):
     np.dot(a, b)
 
     diff = time.time() - start
-    print "size {}, time = {:.2f}".format(size, diff)
+    print("size {}, time = {:.2f}".format(size, diff))
 
-print "OpenBLAS detected: {}".format(has_openblas())
+print("OpenBLAS detected: {}".format(has_openblas()))
 mult(1000)
 mult(2000)
 mult(4000)

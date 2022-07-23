@@ -52,6 +52,7 @@ class PVObject(object):
 
         for constraint in error_star.constraint_list:
             usafe_basis_predicates.append(constraint)
+            # print("pv _container" + str(constraint))
 
         return usafe_basis_predicates
 

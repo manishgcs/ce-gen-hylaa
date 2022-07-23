@@ -63,7 +63,7 @@ def define_init_states(ha, init_r):
 def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
-    plot_settings.plot_mode = PlotSettings.PLOT_MATLAB
+    plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
     plot_settings.xdim = 2
     plot_settings.ydim = 1
 

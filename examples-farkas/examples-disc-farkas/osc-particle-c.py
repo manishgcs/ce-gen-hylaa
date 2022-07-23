@@ -8,6 +8,7 @@ from hylaa.pv_container import PVObject
 from hylaa.simutil import compute_simulation
 from hylaa.timerutil import Timers
 from hylaa.star import init_hr_to_star
+from farkas_central.bdd4Ce import BDD4CE
 
 
 def define_ha(settings, usafe_r):
@@ -31,6 +32,7 @@ def define_ha(settings, usafe_r):
     if usafe_r is None:
         usafe_set_constraint_list.append(LinearConstraint([1, 0, 0], 0.8))
         usafe_set_constraint_list.append(LinearConstraint([-1, 0, 0], -0.2))
+        # usafe_set_constraint_list.append(LinearConstraint([0, -1, 0], -0.5))
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
         for constraint in usafe_star.constraint_list:
@@ -75,7 +77,6 @@ def run_hylaa(settings, init_r, usafe_r):
 
     return PVObject(len(ha.variables), usafe_set_constraint_list, reach_tree)
 
-
 if __name__ == '__main__':
     settings = define_settings()
     # init_r = HyperRectangle([(-0.1, 0.1), (0.8, 1),(0, 0)])
@@ -84,3 +85,9 @@ if __name__ == '__main__':
     # usafe_r = HyperRectangle([(0, 0.1), (0, 0.1), (0.5, 0.8)])
 
     pv_object = run_hylaa(settings, init_r, None)
+
+    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
+    valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
+    print(len(valid_exps), len(invalid_exps))
+    Timers.print_stats()

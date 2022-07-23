@@ -19,8 +19,9 @@ def define_ha(settings, usafe_r):
 
     loc1 = ha.new_mode('loc1')
 
-    loc1.a_matrix = np.array([[-0.1, -1, 0, 0], [1, -0.1, 0, 0], [0, 0, -0.15, 0], [0, 0, 0, 0]])
-    loc1.c_vector = np.array([0, 0, 0, 1], dtype=float)
+    # loc1.a_matrix = np.array([[-0.1, -1, 0, 0], [1, -0.1, 0, 0], [0, 0, -0.15, 0], [0, 0, 0, 1]])
+    loc1.a_matrix = np.array([[0.9851, -0.0988, 0, 0], [0.0988, 0.9851, 0, 0], [0, 0, 0.9851, 0], [0, 0, 0, 1]])
+    loc1.c_vector = np.array([0, 0, 0, 0.1], dtype=float)
     error = ha.new_mode('_error')
     error.is_error = True
 
@@ -59,10 +60,10 @@ def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
     plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
-    plot_settings.xdim = 1
-    plot_settings.ydim = 2
+    plot_settings.xdim = 3
+    plot_settings.ydim = 0
 
-    s = HylaaSettings(step=0.1, max_time=20.0, disc_dyn=False, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.1, max_time=20.0, disc_dyn=True, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
 
     return s

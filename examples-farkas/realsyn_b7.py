@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
     # mid-order = +2
     # random: [5, 3, 0, 7, 8, 9, 6, 1, 4, 2, 10]
-    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
+    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
     bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))

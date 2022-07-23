@@ -13,6 +13,8 @@ from hylaa.containers import PlotSettings
 from hylaa.pv_container import PVObject
 from hylaa.timerutil import Timers
 from hylaa.simutil import compute_simulation
+from hylaa.ce_smt import CeSmt
+from hylaa.ce_milp import CeMilp
 import matplotlib.pyplot as plt
 
 
@@ -68,7 +70,7 @@ def define_settings():
     plot_settings.xdim = 0
     plot_settings.ydim = 1
 
-    s = HylaaSettings(step=0.2, max_time=20.0, disc_dyn=False, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.1, max_time=20.0, disc_dyn=False, plot_settings=plot_settings)
     s.stop_when_error_reachable = False
     
     return s
@@ -111,8 +113,8 @@ if __name__ == '__main__':
     init_r = HyperRectangle([(-6, -5), (0, 1)])
 
     # usafe_r = HyperRectangle([(-1.5, 1.5), (4, 6)])  # Small
-    usafe_r = HyperRectangle([(-2, 2), (1, 5)])   # milp
-    # usafe_r = HyperRectangle([(-3, 2), (1, 5)])  # Medium
+    # usafe_r = HyperRectangle([(-2, 4), (1, 5)])  # milp - Check why SMT gives wrong answer!!
+    usafe_r = HyperRectangle([(-3, 2), (1, 5)])  # Medium
     # usafe_r = HyperRectangle([(-4, 2), (-1, 6)])  # Large
 
     pv_object = run_hylaa(settings, init_r, usafe_r)
@@ -124,7 +126,12 @@ if __name__ == '__main__':
 
     # pv_object.compute_counter_examples_using_z3(4)
     # pv_object.compute_z3_counterexample()
+    ce_smt_object = CeSmt(pv_object)
+    ce_smt_object.compute_ce_wo_regex()
+    # ce_smt_object.compute_z3_ces_for_regex()
     # pv_object.compute_milp_counterexample_py('Oscillator', "11111001111111111111111110")
+    ce_mip_object = CeMilp(pv_object)
+    ce_mip_object.compute_counterexample('Oscillator')
     # z3_ce = np.array([-5.1324054061, 0.8009245168])
     # milp_ce = np.array([-5.28179, 0.76464])
     # compute_simulation_mt(milp_ce, z3_ce)

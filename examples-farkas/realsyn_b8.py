@@ -8,7 +8,6 @@ from hylaa.timerutil import Timers
 from hylaa.pv_container import PVObject
 from controlcore.control_utils import get_input, extend_a_b
 from farkas_central.bdd4Ce import BDD4CE
-import sys
 from hylaa.ce_smt import CeSmt
 from hylaa.ce_milp import CeMilp
 from hylaa.simutil import compute_simulation
@@ -19,22 +18,30 @@ def define_ha(settings, usafe_r=None):
     '''make the hybrid automaton and return it'''
 
     ha = LinearHybridAutomaton()
-    ha.variables = ["x1", "x2"]
+    ha.variables = ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8"]
     #
     loc1 = ha.new_mode('loc1')
-    # a_matrix = np.array([[0.0, 2.0], [1.0, 0.0]], dtype=float)
 
-    # exp 1 and 2
-    a_matrix = np.array([[0.0, 2.0], [-1.5, 0.0]], dtype=float)
+    a_matrix = np.array([[0, 1, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 0, 0, 0, 0]], dtype=float)
 
-    # exp 1
-    b_matrix = np.array([[1], [-1]], dtype=float)
-
-    # # exp2
-    # b_matrix = np.array([[1], [1]], dtype=float)
+    b_matrix = np.array([[0, 0, 0, 0],
+                         [1, 0, 0, 0],
+                         [0, 0, 0, 0],
+                         [1, -1, 0, 0],
+                         [0, 0, 0, 0],
+                         [0, 1, -1, 0],
+                         [0, 0, 0, 0],
+                         [0, 0, 1, -1]], dtype=float)
 
     print(a_matrix,  b_matrix)
-    R_mult_factor = 0.2
+    R_mult_factor = 0.01
 
     Q_matrix = np.eye(len(a_matrix[0]), dtype=float)
 
@@ -45,26 +52,20 @@ def define_ha(settings, usafe_r=None):
     k_matrix = get_input(a_matrix, b_matrix, Q_matrix, R_matrix)
 
     print(k_matrix)
-    # a_bk_matrix = a_matrix_ext - np.matmul(b_matrix_ext, k_matrix)
     a_bk_matrix = a_matrix - np.matmul(b_matrix, k_matrix)
-    # print(a_bk_matrix)
-    loc1.a_matrix = a_bk_matrix
-    loc1.c_vector = np.array([0.0, 0.0], dtype=float)
-    # print(a_bk_matrix)
 
-    # loc1.a_matrix = np.array([[0.0, 2.0], [1.0, 0.0]], dtype=float)
-    # loc1.c_vector = np.array([0.0, -9.81], dtype=float)
+    loc1.a_matrix = a_bk_matrix
+    loc1.c_vector = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float)
+    # print(a_bk_matrix)
 
     error = ha.new_mode('_error')
     error.is_error = True
 
     usafe_set_constraint_list = []
     if usafe_r is None:
-        # exp 1
-        usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0], -2.0))
 
-        # exp 2 - Significant diff across equivalent and non-equivalent runs for p_intersect reverse
-        # usafe_set_constraint_list.append(LinearConstraint([0.0, 1.0], -0.85))
+        # exp 1
+        usafe_set_constraint_list.append(LinearConstraint([-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], -2.1))
 
     else:
         usafe_star = init_hr_to_star(settings, usafe_r, ha.modes['_error'])
@@ -115,55 +116,19 @@ def run_hylaa(settings, init_r, usafe_r):
 if __name__ == '__main__':
     settings = define_settings()
 
-    # exp 1
-    init_r = HyperRectangle([(1.0, 1.5), (1.0, 1.5)])
-
-    # exp 2
-    # init_r = HyperRectangle([(2.0, 2.5), (2.0, 2.5)])
+    init_r = HyperRectangle([(-0.1, 0.1), (19.9, 20.1), (0.9, 1.1), (-0.1, 0.1), (0.9, 1.1), (-0.1, 0.1), (0.9, 1.1),
+                             (-0.1, 0.1)])
 
     pv_object = run_hylaa(settings, init_r, None)
 
-    longest_ce = pv_object.compute_longest_ce()
+    # longest_ce = pv_object.compute_longest_ce()
 
-    # ce_smt_object = CeSmt(pv_object)
-    # ce_smt_object.compute_counterexample(regex_str="00000000000000101")
-    # ce_mip_object = CeMilp(pv_object)
-    # ce_mip_object.compute_counterexample('default', regex="00000000000000101")
-
-    # mid-order does not give any good results (merges non-equ nodes)
-    bdd_ce_object = BDD4CE(pv_object, equ_run=True, smt_mip='mip')
-
-    # orig_stdout = sys.stdout
-    # f = open('bdd_output.txt', 'w')
-    # sys.stdout = f
-    #
-    # exp 1
-    # mid-order = 3 (1 is slightly better though)
-    # random: [15, 20, 13, 17, 9, 11, 18, 19, 7, 16, 2, 12, 1, 14, 6, 0, 5, 10, 3, 8, 4]
-    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='mid-order')
-
-    # sys.stdout = orig_stdout
-    # f.close()
-    #
+    # mid-order = +2 (+3 is better though)
+    # random: [8, 11, 12, 14, 7, 6, 3, 0, 2, 9, 5, 1, 13, 10, 15, 4]
+    bdd_ce_object = BDD4CE(pv_object, equ_run=False, smt_mip='mip')
+    bdd_graphs = bdd_ce_object.create_bdd_w_level_merge(level_merge=0, order='default')
     valid_exps, invalid_exps = bdd_graphs[0].generate_expressions()
     print(len(valid_exps), len(invalid_exps))
 
-    # print(valid_exps)
-    # print(invalid_exps)
-    # valid_exps.sort()
-
-    # 00000000100000000000000000000000 # with shuffled r_idx
-
-    # with p_intersect reverse
-    # 00000000000000000100000000000000
-    # 00000000000000001000000000000000
-    # 00000000000000001100000000000000
-    # 00000000000000001110000000000000
-
-    # with open("valid_exps_incorrect", 'w') as f:
-    #     for exp in valid_exps:
-    #         f.write('{}\n'.format(exp))
-    #     f.close()
-    # print(valid_exps)
-
     Timers.print_stats()
+

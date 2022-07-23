@@ -66,10 +66,11 @@ def define_settings():
     'get the hylaa settings object'
     plot_settings = PlotSettings()
     plot_settings.plot_mode = PlotSettings.PLOT_IMAGE
-    plot_settings.xdim = 4
+    plot_settings.xdim = 0
     plot_settings.ydim = 1
+    # plot_settings.make_video("acc-controllerII.mp4", frames=80, fps=2)
 
-    s = HylaaSettings(step=0.1, max_time=20.0, plot_settings=plot_settings)
+    s = HylaaSettings(step=0.2, max_time=20.0, plot_settings=plot_settings, disc_dyn=False)
     s.stop_when_error_reachable = False
     
     return s
@@ -121,5 +122,5 @@ if __name__ == '__main__':
     longest_ce = pv_object.compute_longest_ce()
     depth_direction = np.identity(len(init_r.dims))
     deepest_ce = pv_object.compute_deepest_ce(-depth_direction[1])
-    compute_simulation_mt(longest_ce, deepest_ce)
+    # compute_simulation_mt(longest_ce, deepest_ce)
     Timers.print_stats()
